@@ -5,12 +5,13 @@ from .models import Voucher
 class VoucherAdmin(admin.ModelAdmin):
     list_display = (
         'code',
+        'title',
         'discount_type',
         'discount_value',
-        'is_active',
         'used_count',
-        'usage_limit',
-        'start_date',
-        'end_date'
+        'quantity',
+        'expiry_date',
+        'event_type',
+        'created_at',
     )
     search_fields = ('code',)

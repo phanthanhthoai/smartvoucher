@@ -6,7 +6,8 @@ from .serializers import RegisterSerializer, CreateGroupSerializer, AssignGroupS
 from .services import register_user
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import Permission, Group
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+from .models import BusinessUser
 
 
 class RegisterAPI(APIView):
@@ -99,9 +100,33 @@ class AssignGroupToUserAPI(APIView):
         username = serializer.validated_data["username"]
         group_name = serializer.validated_data["group_name"]
 
+        User = get_user_model()
         user = User.objects.get(username=username)
         group = Group.objects.get(name=group_name)
 
         user.groups.add(group)
 
         return Response({"message": "Group assigned to user"})
+
+
+
+class SyncBusinessUserAPI(APIView):
+    def post(self, request):
+        business_user_id = request.data.get("business_user_id")
+
+        if not business_user_id:
+            return Response({"error": "business_user_id required"}, status=400)
+
+        user, created = BusinessUser.objects.update_or_create(
+            business_user_id=business_user_id,
+            defaults={
+                "name": request.data.get("name"),
+                "email": request.data.get("email"),
+                "phone": request.data.get("phone")
+            }
+        )
+
+        return Response({
+            "status": "created" if created else "updated",
+            "business_user_id": user.business_user_id
+        })

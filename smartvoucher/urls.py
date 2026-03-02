@@ -8,5 +8,4 @@ urlpatterns = [
     path("api/users/login/", TokenObtainPairView.as_view()),
     path("api/users/refresh/", TokenRefreshView.as_view()),
     path("api/users/", include("users.urls")),
-    path("api/dashboard/", include("dashboard.urls")),
 ]

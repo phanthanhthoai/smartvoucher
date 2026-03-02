@@ -37,11 +37,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'vouchers',
+
     'rest_framework',
-    'users',
-    'dashboard',
+    'django_extensions',
+
+    'users.apps.UsersConfig',
+    'orders.apps.OrdersConfig',
+    'vouchers.apps.VouchersConfig',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -70,6 +74,7 @@ REST_FRAMEWORK = {
     ),
 }
 
+AUTH_USER_MODEL = "users.User"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
@@ -78,6 +83,7 @@ EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = "phanthanhthoai007@gmail.com"
 EMAIL_HOST_PASSWORD = "mbichhbymlrvxlym"
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 ROOT_URLCONF = 'smartvoucher.urls'

@@ -1,63 +1,356 @@
-from rest_framework.views import APIView
+﻿from django.contrib.auth import get_user_model
+from django.db.models import Count, Sum
+from django.db.models.functions import TruncDay, TruncMonth, TruncWeek
+from django.utils import timezone
+from django.utils.dateparse import parse_date
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.views import APIView
 
-from .models import Voucher
-from .serializers import CreateVoucherSerializer, CheckVoucherSerializer
-from .services import generate_voucher_code, check_voucher, send_voucher_email, send_voucher_sms
+from orders.models import Order
+
+from .models import UserVoucher, Voucher, VoucherEventLog, VoucherUsage
+from .serializers import (
+    CreateAndDistributeVoucherSerializer,
+    CreateVoucherSerializer,
+    OrderSuccessEventSerializer,
+)
+from .services.distribution import (
+    assign_voucher_to_user,
+    create_distribution_plan,
+    distribute_voucher,
+    execute_distribution_plan,
+    get_target_users,
+)
+from .services.redemption import calculate_discount_amount, redeem_voucher
+from .services.rule_engine import is_voucher_eligible
 
 
-class CreateVoucherAPI(APIView):
+class _EventOrderItems:
+    def __init__(self, items):
+        self._items = items
+
+    def all(self):
+        return self._items
+
+    def filter(self, **kwargs):
+        product_type = kwargs.get("product_type__iexact")
+        if product_type is None:
+            return _EventOrderItems(self._items)
+
+        filtered = [
+            item for item in self._items
+            if (item.get("product_type") or "").lower() == str(product_type).lower()
+        ]
+        return _EventOrderItems(filtered)
+
+    def exists(self):
+        return len(self._items) > 0
+
+
+class _EventOrder:
+    def __init__(self, total_amount, items):
+        self.total_amount = total_amount
+        self.items = _EventOrderItems(items)
+
+
+class ApplyVoucherAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        code = request.data.get("voucher_code")
+        order_id = request.data.get("order_id")
+
+        voucher = Voucher.objects.get(code=code)
+        order = Order.objects.get(id=order_id)
+
+        if voucher.expiry_date < timezone.now():
+            return Response({"error": "Voucher het han"}, status=400)
+
+        if voucher.used_count >= voucher.quantity:
+            return Response({"error": "Voucher da het luot"}, status=400)
+
+        if not is_voucher_eligible(request.user, voucher, order, Order):
+            return Response({"error": "Khong du dieu kien"}, status=403)
+
+        return Response({
+            "message": "Voucher hop le",
+            "discount_preview": calculate_discount_amount(voucher, order),
+        })
+
+
+class ConfirmVoucherUsageAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        code = request.data.get("voucher_code")
+        order_id = request.data.get("order_id")
+
+        voucher = Voucher.objects.get(code=code)
+        order = Order.objects.get(id=order_id)
+
+        success, result = redeem_voucher(request.user, voucher, order)
+
+        if not success:
+            return Response({"error": result}, status=400)
+
+        return Response({
+            "message": "Ap dung voucher thanh cong",
+            "discount": result,
+        })
+
+
+class CreateVoucherAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         serializer = CreateVoucherSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        voucher = serializer.save(
-            code=generate_voucher_code()
-        )
+        voucher = serializer.save()
 
         return Response(
             {
-                "message": "Voucher created successfully",
-                "voucher_code": voucher.code
+                "message": "Tao voucher thanh cong",
+                "voucher_id": voucher.id,
+                "code": voucher.code,
             },
-            status=status.HTTP_201_CREATED
+            status=201,
         )
 
 
-class CheckVoucherAPI(APIView):
+class DistributeVoucherAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        serializer = CheckVoucherSerializer(data=request.data)
+        voucher_id = request.data.get("voucher_id")
+        voucher_code = request.data.get("voucher_code")
+        user_ids = request.data.get("user_ids")
+
+        if not voucher_id and not voucher_code:
+            return Response({"error": "voucher_id hoac voucher_code la bat buoc"}, status=400)
+
+        if voucher_id:
+            voucher = Voucher.objects.get(id=voucher_id)
+        else:
+            voucher = Voucher.objects.get(code=voucher_code)
+
+        users = get_target_users(user_ids=user_ids)
+        created, skipped, eligible = distribute_voucher(voucher, users)
+
+        return Response(
+            {
+                "message": "Phan phoi voucher hoan tat",
+                "eligible_users": eligible,
+                "assigned": created,
+                "already_assigned": skipped,
+            }
+        )
+
+
+class CreateAndDistributeVoucherAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = CreateAndDistributeVoucherSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        voucher = serializer.save()
+        user_ids = getattr(voucher, "_distribution_user_ids", None)
 
-        data = serializer.validated_data
-        result = check_voucher(
-            data["voucher_code"],
-            data["order_total"],
-            user=request.user 
+        plan = create_distribution_plan(voucher, user_ids=user_ids)
+
+        if voucher.release_date <= timezone.now():
+            created, skipped, eligible = execute_distribution_plan(plan)
+            return Response(
+                {
+                    "message": "Tao va phan phoi voucher thanh cong",
+                    "voucher_id": voucher.id,
+                    "code": voucher.code,
+                    "release_date": voucher.release_date,
+                    "distributed_now": True,
+                    "eligible_users": eligible,
+                    "assigned": created,
+                    "already_assigned": skipped,
+                },
+                status=201,
+            )
+
+        return Response(
+            {
+                "message": "Tao voucher thanh cong, da len lich phan phoi tu dong",
+                "voucher_id": voucher.id,
+                "code": voucher.code,
+                "release_date": voucher.release_date,
+                "distributed_now": False,
+                "plan_id": plan.id,
+            },
+            status=201,
         )
 
-        if not result["valid"]:
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(result, status=status.HTTP_200_OK)
+class ProcessOrderSuccessEventAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
-
-class SendVoucherEmailAPI(APIView):
     def post(self, request):
-        email = request.data.get("email")
-        voucher_code = request.data.get("voucher_code")
+        serializer = OrderSuccessEventSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        send_voucher_email(email, voucher_code)
+        event_log, created = VoucherEventLog.objects.get_or_create(
+            event_id=data["event_id"],
+            defaults={
+                "event_type": VoucherEventLog.EVENT_TYPE_ORDER_SUCCESS,
+                "order_id": data["order_id"],
+                "user_id": data["user_id"],
+                "payload": data,
+            },
+        )
+        if not created:
+            return Response(
+                {
+                    "message": "Event already processed",
+                    "event_id": data["event_id"],
+                    "result": event_log.result,
+                },
+                status=200,
+            )
 
-        return Response({"message": "Email sent"}, status=status.HTTP_200_OK)
+        User = get_user_model()
+
+        try:
+            user = User.objects.get(id=data["user_id"])
+        except User.DoesNotExist:
+            event_log.status = VoucherEventLog.STATUS_SKIPPED
+            event_log.result = {"error": "User khong ton tai"}
+            event_log.save(update_fields=["status", "result"])
+            return Response({"error": "User khong ton tai"}, status=404)
+
+        items = data["items"]
+        normalized_items = []
+        for item in items:
+            normalized_items.append(
+                {
+                    "name": item.get("name"),
+                    "product_type": item.get("product_type"),
+                    "quantity": int(item.get("quantity", 0)),
+                    "unit_price": float(item.get("unit_price", 0)),
+                }
+            )
+
+        event_order = _EventOrder(total_amount=data["total_amount"], items=normalized_items)
+
+        vouchers = Voucher.objects.filter(
+            event_type="order_success",
+            release_date__lte=timezone.now(),
+            expiry_date__gte=timezone.now(),
+        )
+
+        assigned_codes = []
+        skipped_codes = []
+
+        for voucher in vouchers:
+            if voucher.used_count >= voucher.quantity:
+                skipped_codes.append(voucher.code)
+                continue
+
+            if not is_voucher_eligible(user, voucher, event_order, Order):
+                skipped_codes.append(voucher.code)
+                continue
+
+            created = assign_voucher_to_user(user, voucher)
+            if created:
+                assigned_codes.append(voucher.code)
+            else:
+                skipped_codes.append(voucher.code)
+
+        result = {
+            "message": "Da xu ly su kien order thanh cong",
+            "event_id": data["event_id"],
+            "user_id": user.id,
+            "order_id": data["order_id"],
+            "assigned_count": len(assigned_codes),
+            "assigned_vouchers": assigned_codes,
+            "skipped_vouchers": skipped_codes,
+        }
+        event_log.status = VoucherEventLog.STATUS_PROCESSED
+        event_log.result = result
+        event_log.save(update_fields=["status", "result"])
+        return Response(result)
 
 
-class SendVoucherSMSAPI(APIView):
-    def post(self, request):
-        phone = request.data.get("phone")
-        voucher_code = request.data.get("voucher_code")
+def _get_date_range(request):
+    start_date = parse_date(request.query_params.get("start_date", ""))
+    end_date = parse_date(request.query_params.get("end_date", ""))
+    return start_date, end_date
 
-        send_voucher_sms(phone, voucher_code)
 
-        return Response({"message": "SMS sent"})
+class VoucherStatsOverviewAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        total_vouchers = Voucher.objects.count()
+        total_assigned = UserVoucher.objects.count()
+        total_used = VoucherUsage.objects.count()
+        total_discount = VoucherUsage.objects.aggregate(total=Sum("discount_amount"))["total"] or 0
+        total_revenue = Order.objects.aggregate(total=Sum("total_amount"))["total"] or 0
+        usage_rate = round((total_used / total_assigned) * 100, 2) if total_assigned else 0
+
+        return Response(
+            {
+                "total_vouchers": total_vouchers,
+                "total_assigned": total_assigned,
+                "total_used": total_used,
+                "usage_rate_percent": usage_rate,
+                "total_discount_amount": total_discount,
+                "gross_revenue": total_revenue,
+                "net_revenue": total_revenue - total_discount,
+            }
+        )
+
+
+class VoucherRevenueChartAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        group_by = request.query_params.get("group_by", "day")
+        trunc_map = {
+            "day": TruncDay,
+            "week": TruncWeek,
+            "month": TruncMonth,
+        }
+        trunc_func = trunc_map.get(group_by, TruncDay)
+
+        start_date, end_date = _get_date_range(request)
+        usage_qs = VoucherUsage.objects.all()
+        if start_date:
+            usage_qs = usage_qs.filter(used_at__date__gte=start_date)
+        if end_date:
+            usage_qs = usage_qs.filter(used_at__date__lte=end_date)
+
+        chart_rows = (
+            usage_qs
+            .annotate(period=trunc_func("used_at"))
+            .values("period")
+            .annotate(
+                usage_count=Count("id"),
+                discount_amount=Sum("discount_amount"),
+            )
+            .order_by("period")
+        )
+
+        chart = [
+            {
+                "period": row["period"],
+                "usage_count": row["usage_count"],
+                "discount_amount": row["discount_amount"] or 0,
+            }
+            for row in chart_rows
+        ]
+
+        return Response(
+            {
+                "group_by": group_by,
+                "start_date": start_date,
+                "end_date": end_date,
+                "chart": chart,
+            }
+        )
