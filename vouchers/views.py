@@ -1,4 +1,7 @@
-﻿from django.contrib.auth import get_user_model
+﻿import json
+
+from django.contrib.auth import get_user_model
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncDay, TruncMonth, TruncWeek
 from django.utils import timezone
@@ -54,15 +57,45 @@ class _EventOrder:
         self.items = _EventOrderItems(items)
 
 
+def _get_order_from_request(request):
+    order_id = request.data.get("order_id")
+    external_order_id = request.data.get("external_order_id")
+
+    if not order_id and not external_order_id:
+        return None, Response({"error": "order_id hoac external_order_id la bat buoc"}, status=400)
+
+    try:
+        if external_order_id:
+            order = Order.objects.get(external_order_id=external_order_id)
+        else:
+            order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return None, Response({"error": "Order khong ton tai"}, status=404)
+
+    if order.user_id != request.user.id:
+        return None, Response({"error": "Ban khong co quyen voi order nay"}, status=403)
+
+    if order.status == Order.STATUS_CANCELED:
+        return None, Response({"error": "Order da bi huy"}, status=400)
+
+    return order, None
+
+
 class ApplyVoucherAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         code = request.data.get("voucher_code")
-        order_id = request.data.get("order_id")
+        if not code:
+            return Response({"error": "voucher_code la bat buoc"}, status=400)
+        try:
+            voucher = Voucher.objects.get(code=code)
+        except Voucher.DoesNotExist:
+            return Response({"error": "Voucher khong ton tai"}, status=404)
 
-        voucher = Voucher.objects.get(code=code)
-        order = Order.objects.get(id=order_id)
+        order, error_response = _get_order_from_request(request)
+        if error_response:
+            return error_response
 
         if voucher.expiry_date < timezone.now():
             return Response({"error": "Voucher het han"}, status=400)
@@ -84,10 +117,16 @@ class ConfirmVoucherUsageAPIView(APIView):
 
     def post(self, request):
         code = request.data.get("voucher_code")
-        order_id = request.data.get("order_id")
+        if not code:
+            return Response({"error": "voucher_code la bat buoc"}, status=400)
+        try:
+            voucher = Voucher.objects.get(code=code)
+        except Voucher.DoesNotExist:
+            return Response({"error": "Voucher khong ton tai"}, status=404)
 
-        voucher = Voucher.objects.get(code=code)
-        order = Order.objects.get(id=order_id)
+        order, error_response = _get_order_from_request(request)
+        if error_response:
+            return error_response
 
         success, result = redeem_voucher(request.user, voucher, order)
 
@@ -194,6 +233,7 @@ class ProcessOrderSuccessEventAPIView(APIView):
         serializer = OrderSuccessEventSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        json_safe_data = json.loads(json.dumps(data, cls=DjangoJSONEncoder))
 
         event_log, created = VoucherEventLog.objects.get_or_create(
             event_id=data["event_id"],
@@ -201,7 +241,7 @@ class ProcessOrderSuccessEventAPIView(APIView):
                 "event_type": VoucherEventLog.EVENT_TYPE_ORDER_SUCCESS,
                 "order_id": data["order_id"],
                 "user_id": data["user_id"],
-                "payload": data,
+                "payload": json_safe_data,
             },
         )
         if not created:
@@ -354,3 +394,4 @@ class VoucherRevenueChartAPIView(APIView):
                 "chart": chart,
             }
         )
+
