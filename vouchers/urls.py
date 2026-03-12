@@ -7,7 +7,9 @@ from .views import (
     CreateAndDistributeVoucherAPIView,
     ProcessOrderSuccessEventAPIView,
     VoucherStatsOverviewAPIView,
+    VoucherPerformanceAPIView,
     VoucherRevenueChartAPIView,
+    VoucherTopStatsAPIView,
 )
 
 urlpatterns = [
@@ -16,7 +18,9 @@ urlpatterns = [
     path("distribute/", DistributeVoucherAPIView.as_view()),
     path("events/order-success/", ProcessOrderSuccessEventAPIView.as_view()),
     path("stats/overview/", VoucherStatsOverviewAPIView.as_view()),
+    path("stats/performance/", VoucherPerformanceAPIView.as_view()),
     path("stats/revenue-chart/", VoucherRevenueChartAPIView.as_view()),
+    path("stats/top-vouchers/", VoucherTopStatsAPIView.as_view()),
     path("apply/", ApplyVoucherAPIView.as_view()),
     path("confirm/", ConfirmVoucherUsageAPIView.as_view()),
 ]

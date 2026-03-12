@@ -407,6 +407,84 @@
                                                   }
                                   },
                                   {
+                                      "name":  "Voucher Performance",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{access_token}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/vouchers/stats/performance/?start_date={{start_date}}&end_date={{end_date}}&ordering=-usage_count",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "vouchers",
+                                                                               "stats",
+                                                                               "performance",
+                                                                               ""
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "start_date",
+                                                                                    "value":  "{{start_date}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "end_date",
+                                                                                    "value":  "{{end_date}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "ordering",
+                                                                                    "value":  "-usage_count"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Top Vouchers",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{access_token}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/vouchers/stats/top-vouchers/?start_date={{start_date}}&end_date={{end_date}}&limit=5",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "vouchers",
+                                                                               "stats",
+                                                                               "top-vouchers",
+                                                                               ""
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "start_date",
+                                                                                    "value":  "{{start_date}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "end_date",
+                                                                                    "value":  "{{end_date}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "limit",
+                                                                                    "value":  "5"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
                                       "name":  "Apply Voucher",
                                       "request":  {
                                                       "method":  "POST",

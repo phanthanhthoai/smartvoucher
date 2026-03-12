@@ -1,5 +1,7 @@
 ﻿import json
 
+from collections import defaultdict
+
 from django.contrib.auth import get_user_model
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Count, Sum
@@ -323,6 +325,104 @@ def _get_date_range(request):
     return start_date, end_date
 
 
+def _get_usage_queryset(start_date=None, end_date=None):
+    usage_qs = VoucherUsage.objects.select_related("user_voucher", "user_voucher__voucher")
+    if start_date:
+        usage_qs = usage_qs.filter(used_at__date__gte=start_date)
+    if end_date:
+        usage_qs = usage_qs.filter(used_at__date__lte=end_date)
+    return usage_qs
+
+
+def _get_voucher_status(voucher, now=None):
+    now = now or timezone.now()
+    if voucher.expiry_date < now:
+        return "expired"
+    if voucher.release_date > now:
+        return "scheduled"
+    if voucher.used_count >= voucher.quantity:
+        return "exhausted"
+    return "active"
+
+
+def _build_voucher_performance_rows(start_date=None, end_date=None):
+    vouchers = list(Voucher.objects.all().order_by("-created_at"))
+    voucher_ids = [voucher.id for voucher in vouchers]
+    assigned_counts = {
+        row["voucher_id"]: row["assigned_count"]
+        for row in UserVoucher.objects.filter(voucher_id__in=voucher_ids)
+        .values("voucher_id")
+        .annotate(assigned_count=Count("id"))
+    }
+
+    usage_qs = _get_usage_queryset(start_date, end_date).filter(
+        user_voucher__voucher_id__in=voucher_ids
+    )
+    usage_summary = {
+        row["user_voucher__voucher_id"]: {
+            "usage_count": row["usage_count"],
+            "total_discount_amount": row["total_discount_amount"] or 0,
+        }
+        for row in usage_qs
+        .values("user_voucher__voucher_id")
+        .annotate(
+            usage_count=Count("id"),
+            total_discount_amount=Sum("discount_amount"),
+        )
+    }
+
+    voucher_order_ids = defaultdict(set)
+    for row in usage_qs.values("user_voucher__voucher_id", "order_id"):
+        voucher_order_ids[row["user_voucher__voucher_id"]].add(row["order_id"])
+
+    all_order_ids = {
+        order_id
+        for order_ids in voucher_order_ids.values()
+        for order_id in order_ids
+    }
+    order_amounts = {
+        order.id: order.total_amount
+        for order in Order.objects.filter(id__in=all_order_ids)
+    }
+
+    now = timezone.now()
+    rows = []
+    for voucher in vouchers:
+        assigned_count = assigned_counts.get(voucher.id, 0)
+        summary = usage_summary.get(voucher.id, {})
+        usage_count = summary.get("usage_count", 0)
+        total_discount_amount = summary.get("total_discount_amount", 0)
+        revenue_impacted = round(
+            sum(
+                order_amounts.get(order_id, 0)
+                for order_id in voucher_order_ids.get(voucher.id, set())
+            ),
+            2,
+        )
+        usage_rate = round((usage_count / assigned_count) * 100, 2) if assigned_count else 0
+
+        rows.append(
+            {
+                "voucher_id": voucher.id,
+                "code": voucher.code,
+                "title": voucher.title,
+                "status": _get_voucher_status(voucher, now=now),
+                "release_date": voucher.release_date,
+                "expiry_date": voucher.expiry_date,
+                "quantity": voucher.quantity,
+                "used_count": voucher.used_count,
+                "remaining_quantity": max(voucher.quantity - voucher.used_count, 0),
+                "assigned_count": assigned_count,
+                "usage_count": usage_count,
+                "usage_rate_percent": usage_rate,
+                "total_discount_amount": total_discount_amount,
+                "revenue_impacted": revenue_impacted,
+            }
+        )
+
+    return rows
+
+
 class VoucherStatsOverviewAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -360,11 +460,7 @@ class VoucherRevenueChartAPIView(APIView):
         trunc_func = trunc_map.get(group_by, TruncDay)
 
         start_date, end_date = _get_date_range(request)
-        usage_qs = VoucherUsage.objects.all()
-        if start_date:
-            usage_qs = usage_qs.filter(used_at__date__gte=start_date)
-        if end_date:
-            usage_qs = usage_qs.filter(used_at__date__lte=end_date)
+        usage_qs = _get_usage_queryset(start_date, end_date)
 
         chart_rows = (
             usage_qs
@@ -392,6 +488,94 @@ class VoucherRevenueChartAPIView(APIView):
                 "start_date": start_date,
                 "end_date": end_date,
                 "chart": chart,
+            }
+        )
+
+
+class VoucherPerformanceAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        start_date, end_date = _get_date_range(request)
+        ordering = request.query_params.get("ordering", "-usage_count")
+        performance = _build_voucher_performance_rows(start_date, end_date)
+
+        ordering_map = {
+            "code": ("code", False),
+            "-code": ("code", True),
+            "assigned_count": ("assigned_count", False),
+            "-assigned_count": ("assigned_count", True),
+            "usage_count": ("usage_count", False),
+            "-usage_count": ("usage_count", True),
+            "usage_rate_percent": ("usage_rate_percent", False),
+            "-usage_rate_percent": ("usage_rate_percent", True),
+            "total_discount_amount": ("total_discount_amount", False),
+            "-total_discount_amount": ("total_discount_amount", True),
+            "revenue_impacted": ("revenue_impacted", False),
+            "-revenue_impacted": ("revenue_impacted", True),
+            "expiry_date": ("expiry_date", False),
+            "-expiry_date": ("expiry_date", True),
+            "release_date": ("release_date", False),
+            "-release_date": ("release_date", True),
+        }
+        sort_key, reverse = ordering_map.get(ordering, ("usage_count", True))
+        performance.sort(key=lambda row: row[sort_key], reverse=reverse)
+
+        return Response(
+            {
+                "start_date": start_date,
+                "end_date": end_date,
+                "ordering": ordering,
+                "count": len(performance),
+                "results": performance,
+            }
+        )
+
+
+class VoucherTopStatsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        start_date, end_date = _get_date_range(request)
+        limit = request.query_params.get("limit", "5")
+        try:
+            limit = max(int(limit), 1)
+        except ValueError:
+            limit = 5
+
+        performance = _build_voucher_performance_rows(start_date, end_date)
+        most_used = sorted(
+            performance,
+            key=lambda row: (row["usage_count"], row["total_discount_amount"], row["assigned_count"]),
+            reverse=True,
+        )[:limit]
+        highest_usage_rate = sorted(
+            [row for row in performance if row["assigned_count"] > 0],
+            key=lambda row: (row["usage_rate_percent"], row["usage_count"], row["assigned_count"]),
+            reverse=True,
+        )[:limit]
+        highest_discount = sorted(
+            performance,
+            key=lambda row: (row["total_discount_amount"], row["usage_count"]),
+            reverse=True,
+        )[:limit]
+        highest_revenue = sorted(
+            performance,
+            key=lambda row: (row["revenue_impacted"], row["usage_count"]),
+            reverse=True,
+        )[:limit]
+
+        return Response(
+            {
+                "start_date": start_date,
+                "end_date": end_date,
+                "limit": limit,
+                "top_vouchers": {
+                    "most_used": most_used,
+                    "highest_usage_rate": highest_usage_rate,
+                    "highest_discount_amount": highest_discount,
+                    "highest_revenue_impacted": highest_revenue,
+                },
             }
         )
 
