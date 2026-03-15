@@ -24,15 +24,3 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
-
-
-class BusinessUser(models.Model):
-    business_user_id = models.CharField(max_length=100, unique=True)
-    name = models.CharField(max_length=255, null=True, blank=True)
-    email = models.EmailField(null=True, blank=True)
-    phone = models.CharField(max_length=50, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.business_user_id

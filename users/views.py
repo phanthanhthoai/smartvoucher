@@ -2,12 +2,19 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .serializers import RegisterSerializer, CreateGroupSerializer, AssignGroupSerializer
+from .serializers import (
+    RegisterSerializer,
+    CreateGroupSerializer,
+    AssignGroupSerializer,
+    UpdateUserPermissionsSerializer,
+    UpdateUserRoleSerializer,
+    UserSummarySerializer,
+)
 from .services import register_user
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import Permission, Group
 from django.contrib.auth import get_user_model
-from .models import BusinessUser
+from .permissions import IsStaffOrAdmin
 
 
 class RegisterAPI(APIView):
@@ -34,14 +41,17 @@ class MeAPI(APIView):
     def get(self, request):
         user = request.user
         return Response({
+            "id": user.id,
             "username": user.username,
             "email": user.email,
+            "role": user.role,
+            "is_active": user.is_active,
             "is_staff": user.is_staff
         })
 
 
 class PermissionListAPI(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def get(self, request):
         perms = Permission.objects.select_related("content_type").all()
@@ -61,7 +71,7 @@ class PermissionListAPI(APIView):
 
 
 class CreateGroupAPI(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def post(self, request):
         serializer = CreateGroupSerializer(data=request.data)
@@ -91,7 +101,7 @@ class CreateGroupAPI(APIView):
 
 
 class AssignGroupToUserAPI(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def post(self, request):
         serializer = AssignGroupSerializer(data=request.data)
@@ -109,24 +119,88 @@ class AssignGroupToUserAPI(APIView):
         return Response({"message": "Group assigned to user"})
 
 
+class CustomerListAPI(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
-class SyncBusinessUserAPI(APIView):
-    def post(self, request):
-        business_user_id = request.data.get("business_user_id")
+    def get(self, request):
+        User = get_user_model()
+        users = User.objects.filter(role="customer").order_by("id")
+        serializer = UserSummarySerializer(users, many=True)
+        return Response(serializer.data)
 
-        if not business_user_id:
-            return Response({"error": "business_user_id required"}, status=400)
 
-        user, created = BusinessUser.objects.update_or_create(
-            business_user_id=business_user_id,
-            defaults={
-                "name": request.data.get("name"),
-                "email": request.data.get("email"),
-                "phone": request.data.get("phone")
+class StaffListAPI(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def get(self, request):
+        User = get_user_model()
+        users = User.objects.filter(role__in=["staff", "admin"]).order_by("id")
+        serializer = UserSummarySerializer(users, many=True)
+        return Response(serializer.data)
+
+
+class UpdateUserRoleAPI(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def patch(self, request, user_id):
+        serializer = UpdateUserRoleSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        User = get_user_model()
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User khong ton tai"}, status=404)
+
+        user.role = serializer.validated_data["role"]
+        user.is_staff = user.role in {"staff", "admin"}
+        user.save(update_fields=["role", "is_staff"])
+
+        return Response(
+            {
+                "message": "Cap nhat role thanh cong",
+                "user": UserSummarySerializer(user).data,
             }
         )
 
-        return Response({
-            "status": "created" if created else "updated",
-            "business_user_id": user.business_user_id
-        })
+
+class UpdateUserPermissionsAPI(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def patch(self, request, user_id):
+        serializer = UpdateUserPermissionsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        User = get_user_model()
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User khong ton tai"}, status=404)
+
+        perm_codes = serializer.validated_data["permissions"]
+        group_names = serializer.validated_data["groups"]
+
+        permissions = []
+        for code in perm_codes:
+            app_label, codename = code.split(".")
+            perm = Permission.objects.get(
+                content_type__app_label=app_label,
+                codename=codename,
+            )
+            permissions.append(perm)
+
+        groups = list(Group.objects.filter(name__in=group_names))
+        if len(groups) != len(set(group_names)):
+            return Response({"error": "Co group khong ton tai"}, status=400)
+
+        user.user_permissions.set(permissions)
+        user.groups.set(groups)
+
+        return Response(
+            {
+                "message": "Cap nhat quyen thanh cong",
+                "user_id": user.id,
+                "permissions": perm_codes,
+                "groups": [group.name for group in groups],
+            }
+        )

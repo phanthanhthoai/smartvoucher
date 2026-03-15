@@ -1,554 +1,261 @@
-﻿{
-    "info":  {
-                 "_postman_id":  "d7b1d5a3-7a3b-4f0e-9f28-0e7b1c7a9d3a",
-                 "name":  "smartvoucher API",
-                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-             },
-    "item":  [
-                 {
-                     "name":  "Users",
-                     "item":  [
-                                  {
-                                      "name":  "Register",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/users/register/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "users",
-                                                                               "register",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"username\": \"demo_user\",\n  \"email\": \"demo_user@example.com\",\n  \"password\": \"DemoPass123!\"\n}"
-                                                               }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Login (JWT)",
-                                      "event":  [
-                                                    {
-                                                        "listen":  "test",
-                                                        "script":  {
-                                                                       "exec":  [
-                                                                                    "const data = pm.response.json();",
-                                                                                    "if (data.access) { pm.environment.set(\u0027access_token\u0027, data.access); }",
-                                                                                    "if (data.refresh) { pm.environment.set(\u0027refresh_token\u0027, data.refresh); }"
-                                                                                ]
-                                                                   }
-                                                    }
-                                                ],
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/users/login/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "users",
-                                                                               "login",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"username\": \"demo_user\",\n  \"password\": \"DemoPass123!\"\n}"
-                                                               }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Refresh Token",
-                                      "event":  [
-                                                    {
-                                                        "listen":  "test",
-                                                        "script":  {
-                                                                       "exec":  [
-                                                                                    "const data = pm.response.json();",
-                                                                                    "if (data.access) { pm.environment.set(\u0027access_token\u0027, data.access); }"
-                                                                                ]
-                                                                   }
-                                                    }
-                                                ],
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/users/refresh/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "users",
-                                                                               "refresh",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
-                                                               }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Me",
-                                      "request":  {
-                                                      "method":  "GET",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/users/me/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "users",
-                                                                               "me",
-                                                                               ""
-                                                                           ]
-                                                              }
-                                                  }
-                                  }
-                              ]
-                 },
-                 {
-                     "name":  "Orders",
-                     "item":  [
-                                  {
-                                      "name":  "Sync Order",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     },
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/orders/sync/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "orders",
-                                                                               "sync",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"external_order_id\": \"{{external_order_id}}\",\n  \"user_id\": {{user_id}},\n  \"status\": \"pending\",\n  \"total_amount\": 85000,\n  \"items\": [\n    {\n      \"name\": \"Tra sua\",\n      \"product_type\": \"beverage\",\n      \"quantity\": 2,\n      \"unit_price\": 30000\n    },\n    {\n      \"name\": \"Banh ngot\",\n      \"product_type\": \"food\",\n      \"quantity\": 1,\n      \"unit_price\": 25000\n    }\n  ]\n}"
-                                                               }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Cancel Order",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     },
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/orders/cancel/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "orders",
-                                                                               "cancel",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"external_order_id\": \"{{external_order_id}}\"\n}"
-                                                               }
-                                                  }
-                                  }
-                              ]
-                 },
-                 {
-                     "name":  "Vouchers",
-                     "item":  [
-                                  {
-                                      "name":  "Create Voucher",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     },
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/vouchers/create/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "vouchers",
-                                                                               "create",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"code\": \"\",\n  \"title\": \"Beverage Voucher\",\n  \"discount_type\": \"fixed\",\n  \"discount_value\": 10000,\n  \"release_date\": \"2026-02-24T10:00:00Z\",\n  \"expiry_date\": \"2026-12-31T23:59:59Z\",\n  \"quantity\": 100,\n  \"event_type\": \"welcome\",\n  \"rule\": {\n    \"required_role\": \"customer\",\n    \"birthday_only\": false,\n    \"min_order_amount\": 0,\n    \"min_items\": 1,\n    \"required_product_type\": \"beverage\",\n    \"period_type\": null\n  }\n}"
-                                                               }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Create And Distribute Voucher",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     },
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/vouchers/create-and-distribute/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "vouchers",
-                                                                               "create-and-distribute",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"code\": \"\",\n  \"title\": \"Scheduled Welcome Voucher\",\n  \"discount_type\": \"percent\",\n  \"discount_value\": 10,\n  \"release_date\": \"2026-02-28T09:00:00Z\",\n  \"expiry_date\": \"2026-03-31T23:59:59Z\",\n  \"quantity\": 500,\n  \"event_type\": \"welcome\",\n  \"rule\": {\n    \"required_role\": \"customer\",\n    \"birthday_only\": false,\n    \"min_order_amount\": 0,\n    \"min_items\": 0,\n    \"required_product_type\": \"\",\n    \"period_type\": null\n  },\n  \"user_ids\": [1, 2, 3]\n}"
-                                                               }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Distribute Voucher",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     },
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/vouchers/distribute/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "vouchers",
-                                                                               "distribute",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"voucher_code\": \"{{voucher_code}}\",\n  \"user_ids\": []\n}"
-                                                               }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Process Order Success Event",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     },
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/vouchers/events/order-success/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "vouchers",
-                                                                               "events",
-                                                                               "order-success",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"event_id\": \"{{event_id}}\",\n  \"user_id\": {{user_id}},\n  \"order_id\": {{order_id}},\n  \"status\": \"paid\",\n  \"total_amount\": 85000,\n  \"paid_at\": \"2026-03-03T10:00:00Z\",\n  \"items\": [\n    {\n      \"name\": \"Tra sua\",\n      \"product_type\": \"beverage\",\n      \"quantity\": 2,\n      \"unit_price\": 30000\n    },\n    {\n      \"name\": \"Banh ngot\",\n      \"product_type\": \"food\",\n      \"quantity\": 1,\n      \"unit_price\": 25000\n    }\n  ]\n}"
-                                                               }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Stats Overview",
-                                      "request":  {
-                                                      "method":  "GET",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/vouchers/stats/overview/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "vouchers",
-                                                                               "stats",
-                                                                               "overview",
-                                                                               ""
-                                                                           ]
-                                                              }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Revenue Chart",
-                                      "request":  {
-                                                      "method":  "GET",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/vouchers/stats/revenue-chart/?group_by=day\u0026start_date={{start_date}}\u0026end_date={{end_date}}",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "vouchers",
-                                                                               "stats",
-                                                                               "revenue-chart",
-                                                                               ""
-                                                                           ],
-                                                                  "query":  [
-                                                                                {
-                                                                                    "key":  "group_by",
-                                                                                    "value":  "day"
-                                                                                },
-                                                                                {
-                                                                                    "key":  "start_date",
-                                                                                    "value":  "{{start_date}}"
-                                                                                },
-                                                                                {
-                                                                                    "key":  "end_date",
-                                                                                    "value":  "{{end_date}}"
-                                                                                }
-                                                                            ]
-                                                              }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Voucher Performance",
-                                      "request":  {
-                                                      "method":  "GET",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/vouchers/stats/performance/?start_date={{start_date}}&end_date={{end_date}}&ordering=-usage_count",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "vouchers",
-                                                                               "stats",
-                                                                               "performance",
-                                                                               ""
-                                                                           ],
-                                                                  "query":  [
-                                                                                {
-                                                                                    "key":  "start_date",
-                                                                                    "value":  "{{start_date}}"
-                                                                                },
-                                                                                {
-                                                                                    "key":  "end_date",
-                                                                                    "value":  "{{end_date}}"
-                                                                                },
-                                                                                {
-                                                                                    "key":  "ordering",
-                                                                                    "value":  "-usage_count"
-                                                                                }
-                                                                            ]
-                                                              }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Top Vouchers",
-                                      "request":  {
-                                                      "method":  "GET",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/vouchers/stats/top-vouchers/?start_date={{start_date}}&end_date={{end_date}}&limit=5",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "vouchers",
-                                                                               "stats",
-                                                                               "top-vouchers",
-                                                                               ""
-                                                                           ],
-                                                                  "query":  [
-                                                                                {
-                                                                                    "key":  "start_date",
-                                                                                    "value":  "{{start_date}}"
-                                                                                },
-                                                                                {
-                                                                                    "key":  "end_date",
-                                                                                    "value":  "{{end_date}}"
-                                                                                },
-                                                                                {
-                                                                                    "key":  "limit",
-                                                                                    "value":  "5"
-                                                                                }
-                                                                            ]
-                                                              }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Apply Voucher",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     },
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/vouchers/apply/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "vouchers",
-                                                                               "apply",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"voucher_code\": \"{{voucher_code}}\",\n  \"external_order_id\": \"{{external_order_id}}\"\n}"
-                                                               }
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Confirm Voucher Usage",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     },
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{access_token}}"
-                                                                     }
-                                                                 ],
-                                                      "url":  {
-                                                                  "raw":  "{{base_url}}/api/vouchers/confirm/",
-                                                                  "host":  [
-                                                                               "{{base_url}}"
-                                                                           ],
-                                                                  "path":  [
-                                                                               "api",
-                                                                               "vouchers",
-                                                                               "confirm",
-                                                                               ""
-                                                                           ]
-                                                              },
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"voucher_code\": \"{{voucher_code}}\",\n  \"external_order_id\": \"{{external_order_id}}\"\n}"
-                                                               }
-                                                  }
-                                  }
-                              ]
-                 }
-             ]
+
+{
+  "info": {
+    "_postman_id": "d7b1d5a3-7a3b-4f0e-9f28-0e7b1c7a9d3a",
+    "name": "smartvoucher API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{base_url}}/api/users/register/", "host": ["{{base_url}}"], "path": ["api", "users", "register", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"username\": \"demo_user\",\n  \"email\": \"demo_user@example.com\",\n  \"password\": \"DemoPass123!\"\n}"}
+          }
+        },
+        {
+          "name": "Login (JWT)",
+          "event": [{"listen": "test", "script": {"exec": ["const data = pm.response.json();", "if (data.access) { pm.environment.set('access_token', data.access); }", "if (data.refresh) { pm.environment.set('refresh_token', data.refresh); }"]}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{base_url}}/api/users/login/", "host": ["{{base_url}}"], "path": ["api", "users", "login", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"username\": \"demo_user\",\n  \"password\": \"DemoPass123!\"\n}"}
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [{"listen": "test", "script": {"exec": ["const data = pm.response.json();", "if (data.access) { pm.environment.set('access_token', data.access); }"]}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{base_url}}/api/users/refresh/", "host": ["{{base_url}}"], "path": ["api", "users", "refresh", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"}
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/users/me/", "host": ["{{base_url}}"], "path": ["api", "users", "me", ""]}
+          }
+        },
+        {
+          "name": "Get Customers",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/users/customers/", "host": ["{{base_url}}"], "path": ["api", "users", "customers", ""]}
+          }
+        },
+        {
+          "name": "Get Staff",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/users/staff/", "host": ["{{base_url}}"], "path": ["api", "users", "staff", ""]}
+          }
+        },
+        {
+          "name": "List Permissions",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/users/permissions/", "host": ["{{base_url}}"], "path": ["api", "users", "permissions", ""]}
+          }
+        },
+        {
+          "name": "Create Group",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/users/groups/create/", "host": ["{{base_url}}"], "path": ["api", "users", "groups", "create", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"group_name\": \"{{group_name}}\",\n  \"permissions\": [\n    \"vouchers.view_voucher\",\n    \"orders.view_order\"\n  ]\n}"}
+          }
+        },
+        {
+          "name": "Assign Group To User",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/users/groups/assign/", "host": ["{{base_url}}"], "path": ["api", "users", "groups", "assign", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"username\": \"{{target_username}}\",\n  \"group_name\": \"{{group_name}}\"\n}"}
+          }
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/users/{{target_user_id}}/role/", "host": ["{{base_url}}"], "path": ["api", "users", "{{target_user_id}}", "role", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"role\": \"staff\"\n}"}
+          }
+        },
+        {
+          "name": "Update User Permissions",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/users/{{target_user_id}}/permissions/", "host": ["{{base_url}}"], "path": ["api", "users", "{{target_user_id}}", "permissions", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"permissions\": [\n    \"vouchers.view_voucher\",\n    \"orders.view_order\"\n  ],\n  \"groups\": [\n    \"{{group_name}}\"\n  ]\n}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Sync Order",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/orders/sync/", "host": ["{{base_url}}"], "path": ["api", "orders", "sync", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"external_order_id\": \"{{external_order_id}}\",\n  \"user_id\": {{user_id}},\n  \"status\": \"pending\",\n  \"total_amount\": 85000,\n  \"items\": [\n    {\n      \"name\": \"Tra sua\",\n      \"product_type\": \"beverage\",\n      \"quantity\": 2,\n      \"unit_price\": 30000\n    },\n    {\n      \"name\": \"Banh ngot\",\n      \"product_type\": \"food\",\n      \"quantity\": 1,\n      \"unit_price\": 25000\n    }\n  ]\n}"}
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/orders/cancel/", "host": ["{{base_url}}"], "path": ["api", "orders", "cancel", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"external_order_id\": \"{{external_order_id}}\"\n}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vouchers",
+      "item": [
+        {
+          "name": "Create Voucher",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/vouchers/create/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "create", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"code\": \"\",\n  \"title\": \"Beverage Voucher\",\n  \"discount_type\": \"fixed\",\n  \"discount_value\": 10000,\n  \"release_date\": \"2026-02-24T10:00:00Z\",\n  \"expiry_date\": \"2026-12-31T23:59:59Z\",\n  \"quantity\": 100,\n  \"event_type\": \"welcome\",\n  \"rule\": {\n    \"required_role\": \"customer\",\n    \"birthday_only\": false,\n    \"min_order_amount\": 0,\n    \"min_items\": 1,\n    \"required_product_type\": \"beverage\",\n    \"period_type\": null\n  }\n}"}
+          }
+        },
+        {
+          "name": "Create And Distribute Voucher",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/vouchers/create-and-distribute/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "create-and-distribute", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"code\": \"\",\n  \"title\": \"Scheduled Welcome Voucher\",\n  \"discount_type\": \"percent\",\n  \"discount_value\": 10,\n  \"release_date\": \"2026-02-28T09:00:00Z\",\n  \"expiry_date\": \"2026-03-31T23:59:59Z\",\n  \"quantity\": 500,\n  \"event_type\": \"welcome\",\n  \"rule\": {\n    \"required_role\": \"customer\",\n    \"birthday_only\": false,\n    \"min_order_amount\": 0,\n    \"min_items\": 0,\n    \"required_product_type\": \"\",\n    \"period_type\": null\n  },\n  \"user_ids\": [1, 2, 3]\n}"}
+          }
+        },
+        {
+          "name": "Distribute Voucher",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/vouchers/distribute/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "distribute", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"voucher_id\": {{voucher_id}},\n  \"user_ids\": [{{user_id}}]\n}"}
+          }
+        },
+        {
+          "name": "Get Voucher Recipients",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/vouchers/{{voucher_id}}/recipients/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "{{voucher_id}}", "recipients", ""]}
+          }
+        },
+        {
+          "name": "Process Order Success Event",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/vouchers/events/order-success/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "events", "order-success", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"event_id\": \"{{event_id}}\",\n  \"user_id\": {{user_id}},\n  \"order_id\": {{order_id}},\n  \"status\": \"paid\",\n  \"total_amount\": 85000,\n  \"paid_at\": \"2026-03-03T10:00:00Z\",\n  \"items\": [\n    {\n      \"name\": \"Tra sua\",\n      \"product_type\": \"beverage\",\n      \"quantity\": 2,\n      \"unit_price\": 30000\n    },\n    {\n      \"name\": \"Banh ngot\",\n      \"product_type\": \"food\",\n      \"quantity\": 1,\n      \"unit_price\": 25000\n    }\n  ]\n}"}
+          }
+        },
+        {
+          "name": "Stats Overview",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/vouchers/stats/overview/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "stats", "overview", ""]}
+          }
+        },
+        {
+          "name": "Revenue Chart",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/vouchers/stats/revenue-chart/?group_by=day&start_date={{start_date}}&end_date={{end_date}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vouchers", "stats", "revenue-chart", ""],
+              "query": [
+                {"key": "group_by", "value": "day"},
+                {"key": "start_date", "value": "{{start_date}}"},
+                {"key": "end_date", "value": "{{end_date}}"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Voucher Performance",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/vouchers/stats/performance/?start_date={{start_date}}&end_date={{end_date}}&ordering=-usage_count",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vouchers", "stats", "performance", ""],
+              "query": [
+                {"key": "start_date", "value": "{{start_date}}"},
+                {"key": "end_date", "value": "{{end_date}}"},
+                {"key": "ordering", "value": "-usage_count"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Top Vouchers",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/vouchers/stats/top-vouchers/?start_date={{start_date}}&end_date={{end_date}}&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vouchers", "stats", "top-vouchers", ""],
+              "query": [
+                {"key": "start_date", "value": "{{start_date}}"},
+                {"key": "end_date", "value": "{{end_date}}"},
+                {"key": "limit", "value": "5"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Apply Voucher",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/vouchers/apply/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "apply", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"voucher_code\": \"{{voucher_code}}\",\n  \"external_order_id\": \"{{external_order_id}}\"\n}"}
+          }
+        },
+        {
+          "name": "Confirm Voucher Usage",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/vouchers/confirm/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "confirm", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"voucher_code\": \"{{voucher_code}}\",\n  \"external_order_id\": \"{{external_order_id}}\"\n}"}
+          }
+        }
+      ]
+    }
+  ]
 }

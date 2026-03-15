@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncDay, TruncMonth, TruncWeek
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework.permissions import IsAuthenticated
@@ -13,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from orders.models import Order
+from users.permissions import IsStaffOrAdmin
 
 from .models import UserVoucher, Voucher, VoucherEventLog, VoucherUsage
 from .serializers import (
@@ -142,7 +144,7 @@ class ConfirmVoucherUsageAPIView(APIView):
 
 
 class CreateVoucherAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def post(self, request):
         serializer = CreateVoucherSerializer(data=request.data)
@@ -160,7 +162,7 @@ class CreateVoucherAPIView(APIView):
 
 
 class DistributeVoucherAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def post(self, request):
         voucher_id = request.data.get("voucher_id")
@@ -189,7 +191,7 @@ class DistributeVoucherAPIView(APIView):
 
 
 class CreateAndDistributeVoucherAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def post(self, request):
         serializer = CreateAndDistributeVoucherSerializer(data=request.data)
@@ -229,7 +231,7 @@ class CreateAndDistributeVoucherAPIView(APIView):
 
 
 class ProcessOrderSuccessEventAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def post(self, request):
         serializer = OrderSuccessEventSerializer(data=request.data)
@@ -345,6 +347,31 @@ def _get_voucher_status(voucher, now=None):
     return "active"
 
 
+def _build_voucher_recipient_rows(voucher):
+    user_vouchers = (
+        UserVoucher.objects.filter(voucher=voucher)
+        .select_related("user")
+        .order_by("-assigned_at")
+    )
+
+    rows = []
+    for user_voucher in user_vouchers:
+        user = user_voucher.user
+        rows.append(
+            {
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+                "is_used": user_voucher.is_used,
+                "assigned_at": user_voucher.assigned_at,
+                "used_at": user_voucher.used_at,
+            }
+        )
+
+    return rows
+
+
 def _build_voucher_performance_rows(start_date=None, end_date=None):
     vouchers = list(Voucher.objects.all().order_by("-created_at"))
     voucher_ids = [voucher.id for voucher in vouchers]
@@ -424,7 +451,7 @@ def _build_voucher_performance_rows(start_date=None, end_date=None):
 
 
 class VoucherStatsOverviewAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def get(self, request):
         total_vouchers = Voucher.objects.count()
@@ -447,8 +474,47 @@ class VoucherStatsOverviewAPIView(APIView):
         )
 
 
+class VoucherRecipientListAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def get(self, request, voucher_id):
+        voucher = get_object_or_404(Voucher, id=voucher_id)
+        recipients = _build_voucher_recipient_rows(voucher)
+
+        return Response(
+            {
+                "voucher": {
+                    "id": voucher.id,
+                    "code": voucher.code,
+                    "title": voucher.title,
+                    "quantity": voucher.quantity,
+                    "used_count": voucher.used_count,
+                    "recipient_count": len(recipients),
+                },
+                "results": recipients,
+            }
+        )
+
+
+class VoucherRecipientPageView(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def get(self, request, voucher_id):
+        voucher = get_object_or_404(Voucher, id=voucher_id)
+        recipients = _build_voucher_recipient_rows(voucher)
+
+        return render(
+            request,
+            "vouchers/recipient_list.html",
+            {
+                "voucher": voucher,
+                "recipients": recipients,
+            },
+        )
+
+
 class VoucherRevenueChartAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def get(self, request):
         group_by = request.query_params.get("group_by", "day")
@@ -493,7 +559,7 @@ class VoucherRevenueChartAPIView(APIView):
 
 
 class VoucherPerformanceAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def get(self, request):
         start_date, end_date = _get_date_range(request)
@@ -533,7 +599,7 @@ class VoucherPerformanceAPIView(APIView):
 
 
 class VoucherTopStatsAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def get(self, request):
         start_date, end_date = _get_date_range(request)

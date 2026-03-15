@@ -3,12 +3,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from users.permissions import IsStaffOrAdmin
+
 from .models import Order, OrderItem
 from .serializers import OrderCancelSerializer, OrderSyncSerializer
 
 
 class SyncOrderAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def post(self, request):
         serializer = OrderSyncSerializer(data=request.data)
@@ -55,7 +57,7 @@ class SyncOrderAPIView(APIView):
 
 
 class CancelOrderAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def post(self, request):
         serializer = OrderCancelSerializer(data=request.data)
