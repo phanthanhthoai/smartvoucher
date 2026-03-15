@@ -21,6 +21,7 @@ from .serializers import (
     CreateAndDistributeVoucherSerializer,
     CreateVoucherSerializer,
     OrderSuccessEventSerializer,
+    UpdateVoucherSerializer,
 )
 from .services.distribution import (
     assign_voucher_to_user,
@@ -159,6 +160,48 @@ class CreateVoucherAPIView(APIView):
             },
             status=201,
         )
+
+
+class VoucherDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def patch(self, request, voucher_id):
+        voucher = get_object_or_404(Voucher, id=voucher_id)
+
+        if voucher.release_date <= timezone.now():
+            return Response(
+                {"error": "Chi duoc sua voucher khi voucher chua phat hanh"},
+                status=400,
+            )
+
+        serializer = UpdateVoucherSerializer(voucher, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        updated_voucher = serializer.save()
+
+        return Response(
+            {
+                "message": "Cap nhat voucher thanh cong",
+                "voucher": {
+                    "id": updated_voucher.id,
+                    "code": updated_voucher.code,
+                    "title": updated_voucher.title,
+                    "release_date": updated_voucher.release_date,
+                    "expiry_date": updated_voucher.expiry_date,
+                },
+            }
+        )
+
+    def delete(self, request, voucher_id):
+        voucher = get_object_or_404(Voucher, id=voucher_id)
+
+        if voucher.release_date <= timezone.now():
+            return Response(
+                {"error": "Chi duoc xoa voucher khi voucher chua phat hanh"},
+                status=400,
+            )
+
+        voucher.delete()
+        return Response({"message": "Xoa voucher thanh cong"}, status=200)
 
 
 class DistributeVoucherAPIView(APIView):

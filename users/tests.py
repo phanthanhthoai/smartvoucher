@@ -3,7 +3,7 @@ from django.contrib.auth.models import Permission
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from .views import CustomerListAPI, UpdateUserPermissionsAPI, UpdateUserRoleAPI
+from .views import CustomerListAPI, DeleteUserAPI, StaffListAPI, UpdateUserPermissionsAPI, UpdateUserRoleAPI
 
 
 class UserAuthorizationTests(TestCase):
@@ -77,3 +77,59 @@ class UserAuthorizationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(self.customer_user.user_permissions.filter(id=permission.id).exists())
+
+    def test_staff_can_soft_delete_customer(self):
+        request = self.factory.delete(f"/api/users/{self.customer_user.id}/")
+        force_authenticate(request, user=self.staff_user)
+
+        response = DeleteUserAPI.as_view()(request, user_id=self.customer_user.id)
+
+        self.customer_user.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(self.customer_user.is_active)
+
+    def test_cannot_delete_admin_user(self):
+        admin_user = self.User.objects.create_user(
+            username="admin1",
+            email="admin@example.com",
+            password="password123",
+            role="admin",
+            is_staff=True,
+        )
+        request = self.factory.delete(f"/api/users/{admin_user.id}/")
+        force_authenticate(request, user=self.staff_user)
+
+        response = DeleteUserAPI.as_view()(request, user_id=admin_user.id)
+
+        admin_user.refresh_from_db()
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(admin_user.is_active)
+
+    def test_staff_list_hides_inactive_users(self):
+        inactive_staff = self.User.objects.create_user(
+            username="staff2",
+            email="staff2@example.com",
+            password="password123",
+            role="staff",
+            is_staff=True,
+            is_active=False,
+        )
+        request = self.factory.get("/api/users/staff/")
+        force_authenticate(request, user=self.staff_user)
+
+        response = StaffListAPI.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(all(user["id"] != inactive_staff.id for user in response.data))
+
+    def test_customer_list_hides_inactive_users(self):
+        self.customer_user.is_active = False
+        self.customer_user.save(update_fields=["is_active"])
+
+        request = self.factory.get("/api/users/customers/")
+        force_authenticate(request, user=self.staff_user)
+
+        response = CustomerListAPI.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)

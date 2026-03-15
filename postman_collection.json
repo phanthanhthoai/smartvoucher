@@ -105,6 +105,14 @@
             "url": {"raw": "{{base_url}}/api/users/{{target_user_id}}/permissions/", "host": ["{{base_url}}"], "path": ["api", "users", "{{target_user_id}}", "permissions", ""]},
             "body": {"mode": "raw", "raw": "{\n  \"permissions\": [\n    \"vouchers.view_voucher\",\n    \"orders.view_order\"\n  ],\n  \"groups\": [\n    \"{{group_name}}\"\n  ]\n}"}
           }
+        },
+        {
+          "name": "Delete User (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/users/{{target_user_id}}/", "host": ["{{base_url}}"], "path": ["api", "users", "{{target_user_id}}", ""]}
+          }
         }
       ]
     },
@@ -159,6 +167,23 @@
             "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
             "url": {"raw": "{{base_url}}/api/vouchers/distribute/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "distribute", ""]},
             "body": {"mode": "raw", "raw": "{\n  \"voucher_id\": {{voucher_id}},\n  \"user_ids\": [{{user_id}}]\n}"}
+          }
+        },
+        {
+          "name": "Update Voucher",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/vouchers/{{future_voucher_id}}/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "{{future_voucher_id}}", ""]},
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"Updated Beverage Voucher\",\n  \"quantity\": 150,\n  \"release_date\": \"2026-12-01T09:00:00Z\",\n  \"expiry_date\": \"2026-12-31T23:59:59Z\",\n  \"rule\": {\n    \"required_role\": \"customer\",\n    \"birthday_only\": false,\n    \"min_order_amount\": 50000,\n    \"min_items\": 1,\n    \"required_product_type\": \"beverage\",\n    \"period_type\": null\n  }\n}"}
+          }
+        },
+        {
+          "name": "Delete Voucher",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}],
+            "url": {"raw": "{{base_url}}/api/vouchers/{{future_voucher_id}}/", "host": ["{{base_url}}"], "path": ["api", "vouchers", "{{future_voucher_id}}", ""]}
           }
         },
         {

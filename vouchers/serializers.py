@@ -94,3 +94,41 @@ class CreateAndDistributeVoucherSerializer(CreateVoucherSerializer):
         voucher = super().create(validated_data)
         voucher._distribution_user_ids = user_ids
         return voucher
+
+
+class UpdateVoucherSerializer(serializers.ModelSerializer):
+    code = serializers.CharField(required=False, allow_blank=True)
+    rule = VoucherRuleSerializer(required=False)
+
+    class Meta:
+        model = Voucher
+        fields = [
+            "code",
+            "title",
+            "discount_type",
+            "discount_value",
+            "release_date",
+            "expiry_date",
+            "quantity",
+            "event_type",
+            "rule",
+        ]
+
+    def update(self, instance, validated_data):
+        rule_data = validated_data.pop("rule", None)
+        code = validated_data.get("code")
+
+        if code == "":
+            validated_data.pop("code")
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if rule_data is not None:
+            rule, _ = VoucherRule.objects.get_or_create(voucher=instance)
+            for attr, value in rule_data.items():
+                setattr(rule, attr, value)
+            rule.save()
+
+        return instance

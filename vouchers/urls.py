@@ -6,6 +6,7 @@ from .views import (
     DistributeVoucherAPIView,
     CreateAndDistributeVoucherAPIView,
     ProcessOrderSuccessEventAPIView,
+    VoucherDetailAPIView,
     VoucherRecipientListAPIView,
     VoucherRecipientPageView,
     VoucherStatsOverviewAPIView,
@@ -16,6 +17,7 @@ from .views import (
 
 urlpatterns = [
     path("create/", CreateVoucherAPIView.as_view()),
+    path("<int:voucher_id>/", VoucherDetailAPIView.as_view()),
     path("create-and-distribute/", CreateAndDistributeVoucherAPIView.as_view()),
     path("distribute/", DistributeVoucherAPIView.as_view()),
     path("events/order-success/", ProcessOrderSuccessEventAPIView.as_view()),

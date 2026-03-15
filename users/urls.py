@@ -9,6 +9,7 @@ from .views import (
     StaffListAPI,
     UpdateUserRoleAPI,
     UpdateUserPermissionsAPI,
+    DeleteUserAPI,
 )
 
 
@@ -22,4 +23,5 @@ urlpatterns = [
     path("groups/assign/", AssignGroupToUserAPI.as_view()),
     path("<int:user_id>/role/", UpdateUserRoleAPI.as_view()),
     path("<int:user_id>/permissions/", UpdateUserPermissionsAPI.as_view()),
+    path("<int:user_id>/", DeleteUserAPI.as_view()),
 ]

@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from .models import UserVoucher, Voucher
-from .views import VoucherRecipientListAPIView
+from .views import VoucherDetailAPIView, VoucherRecipientListAPIView
 
 
 class VoucherRecipientTests(TestCase):
@@ -53,3 +53,63 @@ class VoucherRecipientTests(TestCase):
         response = VoucherRecipientListAPIView.as_view()(request, voucher_id=self.voucher.id)
 
         self.assertEqual(response.status_code, 403)
+
+    def test_staff_can_update_unreleased_voucher(self):
+        voucher = Voucher.objects.create(
+            title="Future Voucher",
+            discount_type="fixed",
+            discount_value=5000,
+            release_date=timezone.now() + timedelta(days=2),
+            expiry_date=timezone.now() + timedelta(days=30),
+            quantity=50,
+        )
+        request = self.factory.patch(
+            f"/api/vouchers/{voucher.id}/",
+            {"title": "Updated Future Voucher", "quantity": 80},
+            format="json",
+        )
+        force_authenticate(request, user=self.staff_user)
+
+        response = VoucherDetailAPIView.as_view()(request, voucher_id=voucher.id)
+
+        voucher.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(voucher.title, "Updated Future Voucher")
+        self.assertEqual(voucher.quantity, 80)
+
+    def test_staff_cannot_update_released_voucher(self):
+        request = self.factory.patch(
+            f"/api/vouchers/{self.voucher.id}/",
+            {"title": "Should Fail"},
+            format="json",
+        )
+        force_authenticate(request, user=self.staff_user)
+
+        response = VoucherDetailAPIView.as_view()(request, voucher_id=self.voucher.id)
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_staff_can_delete_unreleased_voucher(self):
+        voucher = Voucher.objects.create(
+            title="Delete Me",
+            discount_type="fixed",
+            discount_value=5000,
+            release_date=timezone.now() + timedelta(days=1),
+            expiry_date=timezone.now() + timedelta(days=10),
+            quantity=10,
+        )
+        request = self.factory.delete(f"/api/vouchers/{voucher.id}/")
+        force_authenticate(request, user=self.staff_user)
+
+        response = VoucherDetailAPIView.as_view()(request, voucher_id=voucher.id)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Voucher.objects.filter(id=voucher.id).exists())
+
+    def test_staff_cannot_delete_released_voucher(self):
+        request = self.factory.delete(f"/api/vouchers/{self.voucher.id}/")
+        force_authenticate(request, user=self.staff_user)
+
+        response = VoucherDetailAPIView.as_view()(request, voucher_id=self.voucher.id)
+
+        self.assertEqual(response.status_code, 400)
