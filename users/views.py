@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -9,6 +10,7 @@ from .serializers import (
     UpdateUserPermissionsSerializer,
     UpdateUserRoleSerializer,
     UserSummarySerializer,
+    UserUpdateSerializer,
 )
 from .services import register_user
 from rest_framework.permissions import IsAuthenticated
@@ -123,10 +125,62 @@ class CustomerListAPI(APIView):
     permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def get(self, request):
+        from django.db.models import Q
+        from django.core.paginator import Paginator
+
+        search_query = request.query_params.get("search", "").strip()
+        page_num = request.query_params.get("page", 1)
+        page_size = request.query_params.get("page_size", 10)
+
         User = get_user_model()
-        users = User.objects.filter(role="customer", is_active=True).order_by("id")
-        serializer = UserSummarySerializer(users, many=True)
-        return Response(serializer.data)
+        users_qs = User.objects.filter(role="customer").order_by("-id")
+
+        if search_query:
+            users_qs = users_qs.filter(
+                Q(username__icontains=search_query) | Q(email__icontains=search_query)
+            )
+
+        paginator = Paginator(users_qs, page_size)
+        try:
+            page_obj = paginator.page(page_num)
+        except Exception:
+            page_obj = paginator.page(1)
+
+        # Tinh toan tong cong cho stats cards
+        from django.db.models import Sum
+        totals = users_qs.aggregate(
+            total_points=Sum("points"),
+            total_spent=Sum("total_spent")
+        )
+
+        serializer = UserSummarySerializer(page_obj.object_list, many=True)
+        return Response({
+            "count": paginator.count,
+            "results": serializer.data,
+            "total_pages": paginator.num_pages,
+            "current_page": page_obj.number,
+            "total_points": totals["total_points"] or 0,
+            "total_spent": totals["total_spent"] or 0,
+        })
+
+
+class ToggleUserActiveAPI(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def patch(self, request, user_id):
+        User = get_user_model()
+        user = get_object_or_404(User, id=user_id)
+        
+        if user.role == "admin":
+            return Response({"error": "Khong the thay doi trang thai admin"}, status=400)
+            
+        user.is_active = not user.is_active
+        user.save(update_fields=["is_active"])
+        
+        return Response({
+            "message": f"Da {'kich hoat' if user.is_active else 'vo hieu hoa'} tai khoan",
+            "is_active": user.is_active
+        })
 
 
 class StaffListAPI(APIView):
@@ -204,6 +258,26 @@ class UpdateUserPermissionsAPI(APIView):
                 "groups": [group.name for group in groups],
             }
         )
+
+
+class UserUpdateAPI(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def patch(self, request, user_id):
+        User = get_user_model()
+        user = get_object_or_404(User, id=user_id)
+
+        if user.role == "admin" and request.user.role != "admin":
+            return Response({"error": "Khong co quyen chinh sua admin"}, status=403)
+
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({
+            "message": "Cap nhat thong tin thanh cong",
+            "user": UserSummarySerializer(user).data
+        })
 
 
 class DeleteUserAPI(APIView):

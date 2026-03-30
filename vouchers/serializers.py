@@ -62,10 +62,12 @@ class CreateVoucherSerializer(serializers.ModelSerializer):
             "title",
             "discount_type",
             "discount_value",
+            "max_discount_amount",
             "release_date",
             "expiry_date",
             "quantity",
             "event_type",
+            "is_active",
             "rule",
         ]
 
@@ -107,10 +109,12 @@ class UpdateVoucherSerializer(serializers.ModelSerializer):
             "title",
             "discount_type",
             "discount_value",
+            "max_discount_amount",
             "release_date",
             "expiry_date",
             "quantity",
             "event_type",
+            "is_active",
             "rule",
         ]
 

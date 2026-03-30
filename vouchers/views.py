@@ -1,10 +1,11 @@
-﻿import json
+import json
 
 from collections import defaultdict
 
 from django.contrib.auth import get_user_model
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import Count, Sum
+from django.db import models
+from django.db.models import Count, Sum, F
 from django.db.models.functions import TruncDay, TruncMonth, TruncWeek
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -94,7 +95,7 @@ class ApplyVoucherAPIView(APIView):
         if not code:
             return Response({"error": "voucher_code la bat buoc"}, status=400)
         try:
-            voucher = Voucher.objects.get(code=code)
+            voucher = Voucher.objects.get(code=code, is_deleted=False)
         except Voucher.DoesNotExist:
             return Response({"error": "Voucher khong ton tai"}, status=404)
 
@@ -125,7 +126,7 @@ class ConfirmVoucherUsageAPIView(APIView):
         if not code:
             return Response({"error": "voucher_code la bat buoc"}, status=400)
         try:
-            voucher = Voucher.objects.get(code=code)
+            voucher = Voucher.objects.get(code=code, is_deleted=False)
         except Voucher.DoesNotExist:
             return Response({"error": "Voucher khong ton tai"}, status=404)
 
@@ -165,16 +166,64 @@ class CreateVoucherAPIView(APIView):
 class VoucherDetailAPIView(APIView):
     permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
+    def get(self, request, voucher_id):
+        voucher = get_object_or_404(Voucher, id=voucher_id, is_deleted=False)
+        try:
+            rule = voucher.rule
+        except Exception:
+            rule = None
+        data = {
+            "id": voucher.id,
+            "code": voucher.code,
+            "title": voucher.title,
+            "discount_type": voucher.discount_type,
+            "discount_value": voucher.discount_value,
+            "max_discount_amount": getattr(voucher, 'max_discount_amount', None),
+            "quantity": voucher.quantity,
+            "used_count": voucher.used_count,
+            "event_type": voucher.event_type,
+            "is_active": voucher.is_active,
+            "release_date": voucher.release_date.isoformat() if voucher.release_date else None,
+            "expiry_date": voucher.expiry_date.isoformat() if voucher.expiry_date else None,
+            "rule": {
+                "required_role": rule.required_role if rule and getattr(rule, 'required_role', None) else "none",
+                "birthday_only": rule.birthday_only if rule and hasattr(rule, 'birthday_only') else False,
+                "min_order_amount": rule.min_order_amount if rule and hasattr(rule, 'min_order_amount') else 0,
+                "min_items": rule.min_items if rule and hasattr(rule, 'min_items') else 0,
+                "required_product_type": rule.required_product_type if rule and hasattr(rule, 'required_product_type') else None,
+                "period_type": rule.period_type if rule and hasattr(rule, 'period_type') else None,
+                "usage_limit_per_user": getattr(rule, 'usage_limit_per_user', 1),
+            } if rule else {
+                "required_role": "none",
+                "birthday_only": False,
+                "min_order_amount": 0,
+                "min_items": 0,
+                "required_product_type": None,
+                "period_type": None,
+                "usage_limit_per_user": 1,
+            }
+        }
+        return Response(data)
+
     def patch(self, request, voucher_id):
-        voucher = get_object_or_404(Voucher, id=voucher_id)
+        voucher = get_object_or_404(Voucher, id=voucher_id, is_deleted=False)
+        is_started = voucher.release_date <= timezone.now()
 
-        if voucher.release_date <= timezone.now():
-            return Response(
-                {"error": "Chi duoc sua voucher khi voucher chua phat hanh"},
-                status=400,
-            )
+        # Nếu đã bắt đầu, lọc bỏ các trường nhạy cảm khỏi data trước khi validate
+        data = request.data.copy()
+        if is_started:
+            blocked_fields = ['discount_type', 'discount_value', 'release_date', 'code']
+            for field in blocked_fields:
+                if field in data:
+                    data.pop(field)
+            
+            # Cảnh báo: Chỉ cho phép dời ngày kết thúc ra xa hơn, hoặc giữ nguyên
+            if 'expiry_date' in data:
+                new_expiry = timezone.datetime.fromisoformat(data['expiry_date'].replace('Z', '+00:00'))
+                if new_expiry < timezone.now():
+                    return Response({"error": "Khong the set ngay het han trong qua khu"}, status=400)
 
-        serializer = UpdateVoucherSerializer(voucher, data=request.data, partial=True)
+        serializer = UpdateVoucherSerializer(voucher, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         updated_voucher = serializer.save()
 
@@ -192,16 +241,11 @@ class VoucherDetailAPIView(APIView):
         )
 
     def delete(self, request, voucher_id):
-        voucher = get_object_or_404(Voucher, id=voucher_id)
+        voucher = get_object_or_404(Voucher, id=voucher_id, is_deleted=False)
 
-        if voucher.release_date <= timezone.now():
-            return Response(
-                {"error": "Chi duoc xoa voucher khi voucher chua phat hanh"},
-                status=400,
-            )
-
-        voucher.delete()
-        return Response({"message": "Xoa voucher thanh cong"}, status=200)
+        voucher.is_deleted = True
+        voucher.save(update_fields=["is_deleted"])
+        return Response({"message": "Xoa voucher thanh cong (da an)"}, status=200)
 
 
 class DistributeVoucherAPIView(APIView):
@@ -216,9 +260,9 @@ class DistributeVoucherAPIView(APIView):
             return Response({"error": "voucher_id hoac voucher_code la bat buoc"}, status=400)
 
         if voucher_id:
-            voucher = Voucher.objects.get(id=voucher_id)
+            voucher = Voucher.objects.get(id=voucher_id, is_deleted=False)
         else:
-            voucher = Voucher.objects.get(code=voucher_code)
+            voucher = Voucher.objects.get(code=voucher_code, is_deleted=False)
 
         users = get_target_users(user_ids=user_ids)
         created, skipped, eligible = distribute_voucher(voucher, users)
@@ -329,6 +373,7 @@ class ProcessOrderSuccessEventAPIView(APIView):
             event_type="order_success",
             release_date__lte=timezone.now(),
             expiry_date__gte=timezone.now(),
+            is_deleted=False
         )
 
         assigned_codes = []
@@ -380,6 +425,8 @@ def _get_usage_queryset(start_date=None, end_date=None):
 
 
 def _get_voucher_status(voucher, now=None):
+    if not voucher.is_active:
+        return "paused"
     now = now or timezone.now()
     if voucher.expiry_date < now:
         return "expired"
@@ -415,8 +462,12 @@ def _build_voucher_recipient_rows(voucher):
     return rows
 
 
-def _build_voucher_performance_rows(start_date=None, end_date=None):
-    vouchers = list(Voucher.objects.all().order_by("-created_at"))
+def _build_voucher_performance_rows(start_date=None, end_date=None, search_query=None):
+    from django.db.models import Q
+    qs = Voucher.objects.filter(is_deleted=False).order_by("-created_at")
+    if search_query:
+        qs = qs.filter(Q(code__icontains=search_query) | Q(title__icontains=search_query))
+    vouchers = list(qs)
     voucher_ids = [voucher.id for voucher in vouchers]
     assigned_counts = {
         row["voucher_id"]: row["assigned_count"]
@@ -471,11 +522,22 @@ def _build_voucher_performance_rows(start_date=None, end_date=None):
         )
         usage_rate = round((usage_count / assigned_count) * 100, 2) if assigned_count else 0
 
+        try:
+            rule = voucher.rule
+        except Exception:
+            rule = None
         rows.append(
             {
                 "voucher_id": voucher.id,
                 "code": voucher.code,
                 "title": voucher.title,
+                "discount_type": voucher.discount_type,
+                "discount_value": voucher.discount_value,
+                "max_discount_amount": getattr(voucher, 'max_discount_amount', None),
+                "min_order_amount": rule.min_order_amount if rule else 0,
+                "required_role": rule.required_role if rule else "all",
+                "usage_limit_per_user": getattr(rule, 'usage_limit_per_user', 1),
+                "event_type": voucher.event_type,
                 "status": _get_voucher_status(voucher, now=now),
                 "release_date": voucher.release_date,
                 "expiry_date": voucher.expiry_date,
@@ -487,6 +549,7 @@ def _build_voucher_performance_rows(start_date=None, end_date=None):
                 "usage_rate_percent": usage_rate,
                 "total_discount_amount": total_discount_amount,
                 "revenue_impacted": revenue_impacted,
+                "created_at": voucher.created_at,
             }
         )
 
@@ -497,7 +560,7 @@ class VoucherStatsOverviewAPIView(APIView):
     permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def get(self, request):
-        total_vouchers = Voucher.objects.count()
+        total_vouchers = Voucher.objects.filter(is_deleted=False).count()
         total_assigned = UserVoucher.objects.count()
         total_used = VoucherUsage.objects.count()
         total_discount = VoucherUsage.objects.aggregate(total=Sum("discount_amount"))["total"] or 0
@@ -521,8 +584,42 @@ class VoucherRecipientListAPIView(APIView):
     permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def get(self, request, voucher_id):
-        voucher = get_object_or_404(Voucher, id=voucher_id)
-        recipients = _build_voucher_recipient_rows(voucher)
+        from django.core.paginator import Paginator
+        from django.db.models import Q
+        
+        voucher = get_object_or_404(Voucher, id=voucher_id, is_deleted=False)
+        
+        search_query = request.query_params.get("search", "").strip()
+        page_num = request.query_params.get("page", 1)
+        page_size = request.query_params.get("page_size", 10)
+        
+        # Filter UserVoucher
+        qs = UserVoucher.objects.filter(voucher=voucher).select_related("user").order_by("-assigned_at")
+        
+        if search_query:
+            qs = qs.filter(
+                Q(user__username__icontains=search_query) | 
+                Q(user__email__icontains=search_query)
+            )
+            
+        paginator = Paginator(qs, page_size)
+        try:
+            page_obj = paginator.page(page_num)
+        except Exception:
+            page_obj = paginator.page(1)
+            
+        results = []
+        for uv in page_obj.object_list:
+            user = uv.user
+            results.append({
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+                "is_used": uv.is_used,
+                "assigned_at": uv.assigned_at,
+                "used_at": uv.used_at,
+            })
 
         return Response(
             {
@@ -532,18 +629,41 @@ class VoucherRecipientListAPIView(APIView):
                     "title": voucher.title,
                     "quantity": voucher.quantity,
                     "used_count": voucher.used_count,
-                    "recipient_count": len(recipients),
+                    "recipient_count": qs.count(),
                 },
-                "results": recipients,
+                "count": paginator.count,
+                "next": page_obj.next_page_number() if page_obj.has_next() else None,
+                "previous": page_obj.previous_page_number() if page_obj.has_previous() else None,
+                "results": results,
             }
         )
+
+
+from django.db import transaction
+
+class VoucherRecipientDeleteAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    @transaction.atomic
+    def delete(self, request, voucher_id, user_id):
+        uv = get_object_or_404(UserVoucher, voucher_id=voucher_id, user_id=user_id)
+        voucher = uv.voucher
+        
+        if uv.is_used:
+            # Atomic update of used_count
+            Voucher.objects.filter(id=voucher.id).update(
+                used_count=F('used_count') - 1
+            )
+            
+        uv.delete()
+        return Response({"message": "Successfully removed recipient from voucher"}, status=200)
 
 
 class VoucherRecipientPageView(APIView):
     permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
     def get(self, request, voucher_id):
-        voucher = get_object_or_404(Voucher, id=voucher_id)
+        voucher = get_object_or_404(Voucher, id=voucher_id, is_deleted=False)
         recipients = _build_voucher_recipient_rows(voucher)
 
         return render(
@@ -606,8 +726,9 @@ class VoucherPerformanceAPIView(APIView):
 
     def get(self, request):
         start_date, end_date = _get_date_range(request)
-        ordering = request.query_params.get("ordering", "-usage_count")
-        performance = _build_voucher_performance_rows(start_date, end_date)
+        ordering = request.query_params.get("ordering", "-created_at")
+        search_query = request.query_params.get("search", "").strip()
+        performance = _build_voucher_performance_rows(start_date, end_date, search_query)
 
         ordering_map = {
             "code": ("code", False),
@@ -626,17 +747,36 @@ class VoucherPerformanceAPIView(APIView):
             "-expiry_date": ("expiry_date", True),
             "release_date": ("release_date", False),
             "-release_date": ("release_date", True),
+            "created_at": ("created_at", False),
+            "-created_at": ("created_at", True),
         }
         sort_key, reverse = ordering_map.get(ordering, ("usage_count", True))
         performance.sort(key=lambda row: row[sort_key], reverse=reverse)
+
+        from django.core.paginator import Paginator
+
+        page_num = request.query_params.get("page", 1)
+        page_size = request.query_params.get("page_size", 10)
+        try:
+            page_size = int(page_size)
+        except ValueError:
+            page_size = 10
+            
+        paginator = Paginator(performance, page_size)
+        try:
+            page_obj = paginator.page(page_num)
+        except Exception:
+            page_obj = paginator.page(1)
 
         return Response(
             {
                 "start_date": start_date,
                 "end_date": end_date,
                 "ordering": ordering,
-                "count": len(performance),
-                "results": performance,
+                "count": paginator.count,
+                "next": page_obj.next_page_number() if page_obj.has_next() else None,
+                "previous": page_obj.previous_page_number() if page_obj.has_previous() else None,
+                "results": page_obj.object_list,
             }
         )
 
@@ -688,3 +828,49 @@ class VoucherTopStatsAPIView(APIView):
             }
         )
 
+def _get_voucher_status(voucher, now=None):
+    if not voucher.is_active:
+        return "paused"
+    if not now:
+        from django.utils import timezone
+        now = timezone.now()
+    if voucher.used_count >= voucher.quantity and voucher.quantity > 0:
+        return "exhausted"
+    if voucher.expiry_date and voucher.expiry_date < now:
+        return "expired"
+    if voucher.release_date and voucher.release_date > now:
+        return "scheduled"
+    return "active"
+
+class VoucherListAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def get(self, request):
+        from vouchers.models import Voucher
+        from django.utils import timezone
+        vouchers = Voucher.objects.filter(is_deleted=False).order_by("-created_at")
+        data = []
+        now = timezone.now()
+        for v in vouchers:
+            try:
+                rule = v.rule
+            except Exception:
+                rule = None
+            data.append({
+                "voucher_id": v.id,
+                "code": v.code,
+                "title": v.title,
+                "discount_type": v.discount_type,
+                "discount_value": v.discount_value,
+                "min_order_amount": rule.min_order_amount if rule else 0,
+                "max_discount_amount": getattr(v, 'max_discount_amount', None),
+                "required_role": rule.required_role if rule else "all",
+                "usage_limit_per_user": getattr(rule, 'usage_limit_per_user', 1),
+                "status": _get_voucher_status(v, now=now),
+                "release_date": v.release_date,
+                "expiry_date": v.expiry_date,
+                "quantity": v.quantity,
+                "used_count": v.used_count,
+                "usage_rate_percent": round((v.used_count / v.quantity * 100), 2) if v.quantity > 0 else 0,
+            })
+        return Response({"results": data})

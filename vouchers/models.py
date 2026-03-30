@@ -24,11 +24,14 @@ class Voucher(models.Model):
         choices=[("percent", "Percent"), ("fixed", "Fixed")]
     )
     discount_value = models.FloatField()
+    max_discount_amount = models.FloatField(null=True, blank=True)
 
     release_date = models.DateTimeField(default=timezone.now)
     expiry_date = models.DateTimeField()
     quantity = models.IntegerField(default=0)
     used_count = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    is_deleted = models.BooleanField(default=False)
 
     event_type = models.CharField(max_length=50, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
