@@ -10,6 +10,8 @@ from .views import (
     UpdateUserRoleAPI,
     UpdateUserPermissionsAPI,
     DeleteUserAPI,
+    ToggleUserActiveAPI,
+    UserUpdateAPI,
 )
 
 
@@ -23,5 +25,7 @@ urlpatterns = [
     path("groups/assign/", AssignGroupToUserAPI.as_view()),
     path("<int:user_id>/role/", UpdateUserRoleAPI.as_view()),
     path("<int:user_id>/permissions/", UpdateUserPermissionsAPI.as_view()),
+    path("<int:user_id>/update/", UserUpdateAPI.as_view()),
     path("<int:user_id>/", DeleteUserAPI.as_view()),
+    path("<int:user_id>/toggle-active/", ToggleUserActiveAPI.as_view()),
 ]

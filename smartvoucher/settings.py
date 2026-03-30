@@ -85,6 +85,11 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'django_extensions',
+<<<<<<< HEAD
+=======
+    'corsheaders',
+
+>>>>>>> 6fe49d47d3a8feba213a36e2f7fe97ea4464d149
     'users.apps.UsersConfig',
     'orders.apps.OrdersConfig',
     'vouchers.apps.VouchersConfig',
@@ -97,6 +102,7 @@ if corsheaders:
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -104,6 +110,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+<<<<<<< HEAD
 if corsheaders:
     MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
 
@@ -135,6 +142,16 @@ else:
             'HOST': env('DB_HOST', 'localhost'),
             'PORT': env('DB_PORT', '3306'),
         }
+=======
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'smartvoucher',
+        'USER': 'root',
+        'PASSWORD': '',
+        'HOST': 'localhost',
+        'PORT': '3306',
+>>>>>>> 6fe49d47d3a8feba213a36e2f7fe97ea4464d149
     }
 
 REST_FRAMEWORK = {
@@ -222,3 +239,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CORS_ALLOW_ALL_ORIGINS = True

@@ -9,5 +9,5 @@ class IsStaffOrAdmin(BasePermission):
         return bool(
             user
             and user.is_authenticated
-            and getattr(user, "role", None) in {"staff", "admin"}
+            and (user.is_superuser or getattr(user, "role", None) in {"staff", "admin"})
         )
