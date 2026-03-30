@@ -13,9 +13,12 @@ from .views import (
     VoucherPerformanceAPIView,
     VoucherRevenueChartAPIView,
     VoucherTopStatsAPIView,
+    VoucherListAPIView,
+    VoucherRecipientDeleteAPIView,
 )
 
 urlpatterns = [
+    path("", VoucherListAPIView.as_view()),
     path("create/", CreateVoucherAPIView.as_view()),
     path("<int:voucher_id>/", VoucherDetailAPIView.as_view()),
     path("create-and-distribute/", CreateAndDistributeVoucherAPIView.as_view()),
@@ -23,6 +26,7 @@ urlpatterns = [
     path("events/order-success/", ProcessOrderSuccessEventAPIView.as_view()),
     path("<int:voucher_id>/recipients/", VoucherRecipientListAPIView.as_view()),
     path("<int:voucher_id>/recipients/page/", VoucherRecipientPageView.as_view()),
+    path("<int:voucher_id>/recipients/<int:user_id>/", VoucherRecipientDeleteAPIView.as_view()),
     path("stats/overview/", VoucherStatsOverviewAPIView.as_view()),
     path("stats/performance/", VoucherPerformanceAPIView.as_view()),
     path("stats/revenue-chart/", VoucherRevenueChartAPIView.as_view()),

@@ -26,7 +26,18 @@ class AssignGroupSerializer(serializers.Serializer):
 class UserSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "role", "is_staff", "is_active"]
+        fields = [
+            "id", 
+            "username", 
+            "email", 
+            "role", 
+            "is_staff", 
+            "is_active", 
+            "points", 
+            "total_spent", 
+            "date_joined",
+            "last_login"
+        ]
 
 
 class UpdateUserRoleSerializer(serializers.Serializer):
@@ -44,3 +55,15 @@ class UpdateUserPermissionsSerializer(serializers.Serializer):
         required=False,
         default=list,
     )
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["username", "email", "points", "total_spent"]
+        extra_kwargs = {
+            "username": {"required": False},
+            "email": {"required": False},
+            "points": {"required": False},
+            "total_spent": {"required": False},
+        }
