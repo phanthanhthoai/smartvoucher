@@ -18,3 +18,5 @@ def register_user(username, email, password):
     assign_welcome_vouchers_to_user(user)
 
     return user, None
+
+
