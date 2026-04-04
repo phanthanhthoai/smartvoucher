@@ -92,7 +92,7 @@ DATABASES = {
         'ENGINE': DB_ENGINE,
         'NAME': env('DB_NAME', 'smartvoucher'),
         'USER': env('DB_USER', 'root'),
-        'PASSWORD': env('DB_PASSWORD', ''),
+        'PASSWORD': env('DB_PASSWORD', 'admin'),
         'HOST': env('DB_HOST', 'localhost'),
         'PORT': env('DB_PORT', '3306'),
     }
