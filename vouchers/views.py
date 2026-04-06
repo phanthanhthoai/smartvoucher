@@ -557,7 +557,7 @@ def _build_voucher_performance_rows(start_date=None, end_date=None, search_query
 
 
 class VoucherStatsOverviewAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         total_vouchers = Voucher.objects.filter(is_deleted=False).count()
