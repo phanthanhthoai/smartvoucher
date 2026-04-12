@@ -13,6 +13,7 @@ from .serializers import (
     UserUpdateSerializer,
 )
 from .services import register_user
+from .services import staff_user
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import Permission, Group
 from django.contrib.auth import get_user_model
@@ -26,6 +27,23 @@ class RegisterAPI(APIView):
 
         data = serializer.validated_data
         user, error = register_user(
+            data["username"],
+            data["email"],
+            data["password"]
+        )
+
+        if error:
+            return Response({"message": error}, status=400)
+
+        return Response({"message": "User created"}, status=201)
+    
+class StaffRegisterAPI(APIView):
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+        user, error = staff_user(
             data["username"],
             data["email"],
             data["password"]

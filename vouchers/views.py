@@ -580,6 +580,27 @@ class VoucherStatsOverviewAPIView(APIView):
             }
         )
 
+class VoucherStatsOverviewPublicAPIView(APIView):
+
+    def get(self, request):
+        total_vouchers = Voucher.objects.filter(is_deleted=False).count()
+        total_assigned = UserVoucher.objects.count()
+        total_used = VoucherUsage.objects.count()
+        total_discount = VoucherUsage.objects.aggregate(total=Sum("discount_amount"))["total"] or 0
+        total_revenue = Order.objects.aggregate(total=Sum("total_amount"))["total"] or 0
+        usage_rate = round((total_used / total_assigned) * 100, 2) if total_assigned else 0
+
+        return Response(
+            {
+                "total_vouchers": total_vouchers,
+                "total_assigned": total_assigned,
+                "total_used": total_used,
+                "usage_rate_percent": usage_rate,
+                "total_discount_amount": total_discount,
+                "gross_revenue": total_revenue,
+                "net_revenue": total_revenue - total_discount,
+            }
+        )
 
 class VoucherRecipientListAPIView(APIView):
     permission_classes = [IsAuthenticated, IsStaffOrAdmin]

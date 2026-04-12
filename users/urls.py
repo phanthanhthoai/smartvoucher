@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     RegisterAPI,
+    StaffRegisterAPI,
     MeAPI,
     PermissionListAPI,
     CreateGroupAPI,
@@ -17,6 +18,7 @@ from .views import (
 
 urlpatterns = [
     path("register/", RegisterAPI.as_view()),
+    path("staff-register/", StaffRegisterAPI.as_view()),
     path("me/", MeAPI.as_view()),
     path("customers/", CustomerListAPI.as_view()),
     path("staff/", StaffListAPI.as_view()),
