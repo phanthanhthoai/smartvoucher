@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8fafc;
+  }
+  .container {
+    max-width: 600px;
+    margin: 40px auto;
+    background-color: #ffffff;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+  }
+  .header {
+    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+    padding: 40px;
+    color: #ffffff;
+    text-align: left;
+    position: relative;
+  }
+  .badge {
+    background-color: #10b981;
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-block;
+    margin-bottom: 24px;
+  }
+  .voucher-code {
+    float: right;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .label {
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .title {
+    font-size: 32px;
+    font-weight: 900;
+    margin: 0 0 30px 0;
+    letter-spacing: -0.02em;
+  }
+  .divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    margin: 20px 0;
+  }
+  .footer-stats {
+    display: table;
+    width: 100%;
+  }
+  .stat-item {
+    display: table-cell;
+    vertical-align: bottom;
+  }
+  .value {
+    font-size: 36px;
+    font-weight: 900;
+    color: #ffffff;
+  }
+  .expiry {
+    text-align: right;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 600;
+  }
+  .btn {
+    display: inline-block;
+    background-color: #ffffff;
+    color: #4f46e5;
+    padding: 12px 24px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 900;
+    font-size: 14px;
+    text-transform: uppercase;
+    margin-top: 10px;
+  }
+  .content {
+    padding: 30px 40px;
+    color: #475569;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">ĐANG HOẠT ĐỘNG</div>
+      <div class="voucher-code">{{ voucher.code }}</div>
+      <div style="clear: both;"></div>
+      
+      <div class="label">ƯU ĐÃI ĐỘC QUYỀN</div>
+      <h1 class="title">{{ voucher.title }}</h1>
+      
+      <div class="divider"></div>
+      
+      <div class="footer-stats">
+        <div class="stat-item">
+          <div class="label" style="font-size: 10px;">GIÁ TRỊ NHẬN</div>
+          <div class="value">
+            {% if voucher.discount_type == "percent" %}
+              -{{ voucher.discount_value|floatformat:0 }}%
+            {% else %}
+              -{{ voucher.discount_value|floatformat:0 }}đ
+            {% endif %}
+          </div>
+        </div>
+        <div class="stat-item" style="text-align: right;">
+          <div class="expiry">Hết hạn: {{ voucher.expiry_date|date:"d/m/Y" }}</div>
+          <a href="#" class="btn">SỬ DỤNG NGAY</a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="content">
+      <p>Chào <strong>{{ user.username }}</strong>,</p>
+      <p>Bạn vừa nhận được một voucher ưu đãi độc quyền từ SmartVoucher. Hãy sử dụng mã này cho lần mua hàng tiếp theo để nhận được ưu đãi hấp dẫn nhất!</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+        Đây là email tự động từ hệ thống SmartVoucher. Vui lòng không trả lời email này.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

@@ -23,6 +23,7 @@ from .serializers import (
     CreateVoucherSerializer,
     OrderSuccessEventSerializer,
     UpdateVoucherSerializer,
+    UserVoucherSerializer,
 )
 from .services.distribution import (
     assign_voucher_to_user,
@@ -637,6 +638,27 @@ class VoucherRecipientListAPIView(APIView):
                 "results": results,
             }
         )
+
+
+class UserVoucherHistoryAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def get(self, request, user_id):
+        uvs = UserVoucher.objects.filter(user_id=user_id).select_related("voucher").order_by("-assigned_at")
+        
+        User = get_user_model()
+        user = get_object_or_404(User, id=user_id)
+        
+        serializer = UserVoucherSerializer(uvs, many=True)
+        return Response({
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email
+            },
+            "count": len(serializer.data),
+            "results": serializer.data
+        })
 
 
 from django.db import transaction

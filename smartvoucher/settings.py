@@ -85,18 +85,12 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'django_extensions',
-<<<<<<< HEAD
-=======
     'corsheaders',
 
->>>>>>> 6fe49d47d3a8feba213a36e2f7fe97ea4464d149
     'users.apps.UsersConfig',
     'orders.apps.OrdersConfig',
     'vouchers.apps.VouchersConfig',
 ]
-
-if corsheaders:
-    INSTALLED_APPS.append('corsheaders')
 
 
 MIDDLEWARE = [
@@ -110,39 +104,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-<<<<<<< HEAD
-if corsheaders:
-    MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
-
-CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
-CORS_ALLOWED_ORIGINS = env_list(
-    "CORS_ALLOWED_ORIGINS",
-    [
-        "http://127.0.0.1:3000",
-        "http://localhost:3000",
-    ],
-)
-
-DB_ENGINE = env('DB_ENGINE', 'django.db.backends.sqlite3')
-
-if DB_ENGINE == 'django.db.backends.sqlite3':
-    DATABASES = {
-        'default': {
-            'ENGINE': DB_ENGINE,
-            'NAME': env('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': DB_ENGINE,
-            'NAME': env('DB_NAME', 'smartvoucher'),
-            'USER': env('DB_USER', 'root'),
-            'PASSWORD': env('DB_PASSWORD', ''),
-            'HOST': env('DB_HOST', 'localhost'),
-            'PORT': env('DB_PORT', '3306'),
-        }
-=======
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -151,8 +112,8 @@ DATABASES = {
         'PASSWORD': '',
         'HOST': 'localhost',
         'PORT': '3306',
->>>>>>> 6fe49d47d3a8feba213a36e2f7fe97ea4464d149
     }
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -196,7 +157,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'smartvoucher.wsgi.application'
-
 
 
 # Password validation
