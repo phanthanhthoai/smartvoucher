@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
 
     # Thư viện bên thứ 3
     'rest_framework',
@@ -94,7 +95,7 @@ DATABASES = {
         'ENGINE': DB_ENGINE,
         'NAME': env('DB_NAME', 'smartvoucher'),
         'USER': env('DB_USER', 'root'),
-        'PASSWORD': env('DB_PASSWORD', 'admin'),
+        'PASSWORD': env('DB_PASSWORD', ''),  
         'HOST': env('DB_HOST', 'localhost'),
         'PORT': env('DB_PORT', '3306'),
     }
@@ -119,8 +120,8 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = env("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(env("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", "huyhoangnguyenh2n004x@gmail.com")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "hwfe igqn zehp uwrb")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 
 ROOT_URLCONF = 'smartvoucher.urls'

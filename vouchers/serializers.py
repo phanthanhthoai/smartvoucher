@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Voucher, UserVoucher, VoucherRule
 
 class UserVoucherSerializer(serializers.ModelSerializer):
+    voucher_id = serializers.IntegerField(source="voucher.id")
+    voucher_code = serializers.CharField(source="voucher.code")
     voucher_title = serializers.CharField(source="voucher.title")
     discount_type = serializers.CharField(source="voucher.discount_type")
     discount_value = serializers.FloatField(source="voucher.discount_value")
@@ -12,10 +14,15 @@ class UserVoucherSerializer(serializers.ModelSerializer):
         model = UserVoucher
         fields = [
             "id",
+            "voucher_id",
+            "voucher_code",
             "voucher_title",
             "discount_type",
             "discount_value",
             "expiry_date",
+            "is_used",
+            "assigned_at",
+            "used_at",
             "remaining_uses",
         ]
 

@@ -1,8 +1,12 @@
-﻿from django.conf import settings
+import logging
+from django.conf import settings
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 from vouchers.models import VoucherDeliveryLog
 
+logger = logging.getLogger(__name__)
 
 def send_voucher_email(user, voucher):
     recipient = user.email
@@ -18,25 +22,27 @@ def send_voucher_email(user, voucher):
         )
         return False
 
-    subject = f"[SmartVoucher] You received voucher {voucher.code}"
-    message = (
-        f"Hello {user.username},\n\n"
-        f"You received a voucher: {voucher.title}\n"
-        f"Code: {voucher.code}\n"
-        f"Type: {voucher.discount_type}\n"
-        f"Value: {voucher.discount_value}\n"
-        f"Release date: {voucher.release_date}\n"
-        f"Expiry date: {voucher.expiry_date}\n"
-    )
+    subject = f"[SmartVoucher] Bạn nhận được voucher mới {voucher.code}"
+    
+    # Prepare context for template
+    context = {
+        'user': user,
+        'voucher': voucher,
+    }
+    
+    # Render HTML and plain text version
+    html_message = render_to_string('vouchers/email/voucher_email.html', context)
+    plain_message = strip_tags(html_message)
 
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or settings.EMAIL_HOST_USER
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", "")
 
     try:
         send_mail(
             subject=subject,
-            message=message,
+            message=plain_message,
             from_email=from_email,
             recipient_list=[recipient],
+            html_message=html_message,
             fail_silently=False,
         )
         VoucherDeliveryLog.objects.create(
@@ -57,3 +63,4 @@ def send_voucher_email(user, voucher):
             error_message=str(exc),
         )
         return False
+

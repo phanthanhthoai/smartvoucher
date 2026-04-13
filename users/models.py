@@ -16,6 +16,7 @@ class User(AbstractUser):
     )
 
     birthday = models.DateField(null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
 
     total_spent = models.FloatField(default=0)
     total_orders = models.IntegerField(default=0)
