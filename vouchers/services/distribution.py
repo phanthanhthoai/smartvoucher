@@ -1,4 +1,4 @@
-﻿from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
@@ -15,21 +15,24 @@ def _filter_users_by_rule(users, rule):
     return eligible
 
 
-def assign_voucher_to_user(user, voucher):
+def assign_voucher_to_user(user, voucher, channels=None):
+    if channels is None:
+        channels = ['email']
     _, created = UserVoucher.objects.get_or_create(user=user, voucher=voucher)
     if created:
-        send_voucher_email(user, voucher)
+        if 'email' in channels:
+            send_voucher_email(user, voucher)
     return created
 
 
-def distribute_voucher(voucher, users):
+def distribute_voucher(voucher, users, channels=None):
     rule = voucher.rule
     eligible_users = _filter_users_by_rule(users, rule)
 
     created = 0
     skipped = 0
     for user in eligible_users:
-        was_created = assign_voucher_to_user(user, voucher)
+        was_created = assign_voucher_to_user(user, voucher, channels=channels)
         if was_created:
             created += 1
         else:
@@ -96,7 +99,7 @@ def execute_distribution_plan(plan):
         return 0, 0, 0
 
     users = get_target_users(user_ids=plan.user_ids)
-    created, skipped, eligible = distribute_voucher(voucher, users)
+    created, skipped, eligible = distribute_voucher(voucher, users, channels=['email'])
 
     plan.status = VoucherDistributionPlan.STATUS_COMPLETED
     plan.distributed_at = now

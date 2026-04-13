@@ -1,3 +1,4 @@
+import logging
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -5,6 +6,7 @@ from django.utils.html import strip_tags
 
 from vouchers.models import VoucherDeliveryLog
 
+logger = logging.getLogger(__name__)
 
 def send_voucher_email(user, voucher):
     recipient = user.email
@@ -32,7 +34,7 @@ def send_voucher_email(user, voucher):
     html_message = render_to_string('vouchers/email/voucher_email.html', context)
     plain_message = strip_tags(html_message)
 
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or settings.EMAIL_HOST_USER
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", "")
 
     try:
         send_mail(
@@ -61,3 +63,4 @@ def send_voucher_email(user, voucher):
             error_message=str(exc),
         )
         return False
+

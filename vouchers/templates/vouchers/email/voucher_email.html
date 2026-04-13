@@ -1,142 +1,500 @@
 <!DOCTYPE html>
-<html>
+{% load humanize %}
+<html lang="vi">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voucher Ưu Đãi - SmartVoucher</title>
 <style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f8fafc;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f1f5f9;
+    padding: 32px 16px;
+    color: #334155;
   }
-  .container {
-    max-width: 600px;
-    margin: 40px auto;
-    background-color: #ffffff;
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-  }
-  .header {
-    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
-    padding: 40px;
+  .wrapper { max-width: 600px; margin: 0 auto; }
+
+  /* === HEADER CARD === */
+  .card-hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 24px 24px 0 0;
+    padding: 36px 36px 28px;
     color: #ffffff;
-    text-align: left;
     position: relative;
+    overflow: hidden;
   }
-  .badge {
-    background-color: #10b981;
-    color: #ffffff;
-    padding: 6px 14px;
+  .card-hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+  }
+  .card-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: -40px;
+    width: 160px; height: 160px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 50%;
+  }
+  .hero-top {
+    display: table;
+    width: 100%;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .status-badge {
+    display: table-cell;
+    vertical-align: middle;
+  }
+  .badge-pill {
+    display: inline-block;
+    background: #10b981;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 5px 14px;
     border-radius: 99px;
+  }
+  .code-pill {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: right;
+  }
+  .code-text {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 6px 16px;
+    border-radius: 99px;
+    font-family: monospace;
+  }
+  .hero-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-title {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #fff;
+    margin-bottom: 28px;
+    position: relative;
+    z-index: 1;
+    line-height: 1.2;
+  }
+  .hero-divider {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    margin-bottom: 20px;
+  }
+  .hero-stats {
+    display: table;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+  .stat-left { display: table-cell; vertical-align: bottom; }
+  .stat-right { display: table-cell; vertical-align: bottom; text-align: right; }
+  .stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: 40px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .stat-value .suffix {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+  .expiry-text {
+    font-size: 11px;
+    color: rgba(255,255,255,0.75);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .use-btn {
+    display: inline-block;
+    background: #ffffff;
+    color: #4f46e5;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 10px 22px;
+    border-radius: 12px;
+    text-decoration: none;
+  }
+
+  /* === INFO SECTION === */
+  .info-section {
+    background: #fff;
+    padding: 28px 36px;
+    border-left: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+  }
+  .greeting {
+    font-size: 16px;
+    color: #1e293b;
+    margin-bottom: 12px;
+    font-weight: 500;
+    line-height: 1.6;
+  }
+  .intro-text {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  /* === VOUCHER DETAIL BOX === */
+  .detail-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .detail-box-title {
     font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    display: inline-block;
-    margin-bottom: 24px;
+    letter-spacing: 0.1em;
+    color: #94a3b8;
+    margin-bottom: 14px;
   }
-  .voucher-code {
-    float: right;
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 6px 14px;
-    border-radius: 99px;
-    font-size: 12px;
-    font-weight: 700;
-  }
-  .label {
-    text-transform: uppercase;
-    font-size: 12px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 8px;
-    letter-spacing: 0.02em;
-  }
-  .title {
-    font-size: 32px;
-    font-weight: 900;
-    margin: 0 0 30px 0;
-    letter-spacing: -0.02em;
-  }
-  .divider {
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    margin: 20px 0;
-  }
-  .footer-stats {
+  .detail-row {
     display: table;
     width: 100%;
+    margin-bottom: 10px;
   }
-  .stat-item {
+  .detail-row:last-child { margin-bottom: 0; }
+  .detail-icon {
     display: table-cell;
-    vertical-align: bottom;
-  }
-  .value {
-    font-size: 36px;
-    font-weight: 900;
-    color: #ffffff;
-  }
-  .expiry {
-    text-align: right;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: 600;
-  }
-  .btn {
-    display: inline-block;
-    background-color: #ffffff;
-    color: #4f46e5;
-    padding: 12px 24px;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 900;
+    vertical-align: middle;
+    width: 20px;
+    color: #6366f1;
     font-size: 14px;
-    text-transform: uppercase;
-    margin-top: 10px;
   }
-  .content {
-    padding: 30px 40px;
-    color: #475569;
+  .detail-label {
+    display: table-cell;
+    vertical-align: middle;
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    padding-right: 8px;
+    width: 160px;
+  }
+  .detail-value {
+    display: table-cell;
+    vertical-align: middle;
+    font-size: 13px;
+    color: #1e293b;
+    font-weight: 700;
+    text-align: right;
+  }
+  .detail-value.highlight {
+    color: #4f46e5;
+    font-size: 15px;
+  }
+  .detail-divider {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 10px 0;
+  }
+
+  /* === COPY CODE BOX === */
+  .code-box {
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    border: 1.5px dashed #a78bfa;
+    border-radius: 16px;
+    padding: 18px 24px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .code-box-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #7c3aed;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .code-box-value {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 28px;
+    font-weight: 900;
+    color: #4f46e5;
+    letter-spacing: 0.12em;
+  }
+
+  /* === HOW TO USE === */
+  .steps {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .steps-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #166534;
+    margin-bottom: 14px;
+  }
+  .step-item {
+    display: table;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .step-num {
+    display: table-cell;
+    vertical-align: top;
+    width: 26px;
+  }
+  .step-num-circle {
+    background: #16a34a;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 22px;
+    display: inline-block;
+  }
+  .step-text {
+    display: table-cell;
+    vertical-align: top;
+    font-size: 13px;
+    color: #166534;
+    font-weight: 500;
+    line-height: 1.5;
+    padding-left: 6px;
+  }
+
+  /* === FOOTER === */
+  .footer {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    border-radius: 0 0 24px 24px;
+    padding: 20px 36px;
+    text-align: center;
+  }
+  .footer-brand {
+    font-size: 16px;
+    font-weight: 900;
+    color: #4f46e5;
+    margin-bottom: 6px;
+  }
+  .footer-note {
+    font-size: 11px;
+    color: #94a3b8;
     line-height: 1.6;
   }
 </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="badge">ĐANG HOẠT ĐỘNG</div>
-      <div class="voucher-code">{{ voucher.code }}</div>
-      <div style="clear: both;"></div>
-      
-      <div class="label">ƯU ĐÃI ĐỘC QUYỀN</div>
-      <h1 class="title">{{ voucher.title }}</h1>
-      
-      <div class="divider"></div>
-      
-      <div class="footer-stats">
-        <div class="stat-item">
-          <div class="label" style="font-size: 10px;">GIÁ TRỊ NHẬN</div>
-          <div class="value">
-            {% if voucher.discount_type == "percent" %}
-              -{{ voucher.discount_value|floatformat:0 }}%
-            {% else %}
-              -{{ voucher.discount_value|floatformat:0 }}đ
-            {% endif %}
-          </div>
+<div class="wrapper">
+
+  <!-- ===== HERO CARD ===== -->
+  <div class="card-hero">
+    <div class="hero-top">
+      <div class="status-badge">
+        <span class="badge-pill">&#10003; ĐANG HOẠT ĐỘNG</span>
+      </div>
+      <div class="code-pill">
+        <span class="code-text">{{ voucher.code }}</span>
+      </div>
+    </div>
+
+    <div class="hero-label">
+      {% if voucher.event_type == "welcome" %}PHẦN THƯỞNG THÀNH VIÊN MỚI
+      {% elif voucher.event_type == "holiday" %}ƯU ĐÃI NGÀY LỄ
+      {% else %}ƯU ĐÃI ĐỘC QUYỀN{% endif %}
+    </div>
+    <div class="hero-title">{{ voucher.title }}</div>
+
+    <hr class="hero-divider">
+
+    <div class="hero-stats">
+      <div class="stat-left">
+        <div class="stat-label">GIÁ TRỊ NHẬN</div>
+        <div class="stat-value">
+          {% if voucher.discount_type == "percent" %}
+            {{ voucher.discount_value|floatformat:0 }}<span class="suffix">%</span>
+          {% else %}
+            {{ voucher.discount_value|floatformat:0|intcomma }}<span class="suffix">đ</span>
+          {% endif %}
         </div>
-        <div class="stat-item" style="text-align: right;">
-          <div class="expiry">Hết hạn: {{ voucher.expiry_date|date:"d/m/Y" }}</div>
-          <a href="#" class="btn">SỬ DỤNG NGAY</a>
+      </div>
+      <div class="stat-right">
+        <div class="expiry-text">&#128197; Hết hạn: {{ voucher.expiry_date|date:"d/m/Y H:i" }}</div>
+        <a href="#" class="use-btn">SỬ DỤNG NGAY</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== INFO SECTION ===== -->
+  <div class="info-section">
+    <p class="greeting">Chào <strong>{{ user.username }}</strong>, 🎉</p>
+    <p class="intro-text">
+      Bạn vừa nhận được một voucher ưu đãi độc quyền từ <strong>SmartVoucher</strong>!
+      Đây là phần thưởng dành riêng cho bạn. Hãy sao chép mã bên dưới và áp dụng
+      ngay trong lần mua hàng tiếp theo để nhận ưu đãi hấp dẫn nhất.
+    </p>
+
+    <!-- CODE BOX -->
+    <div class="code-box">
+      <div class="code-box-label">&#128274; Mã voucher của bạn</div>
+      <div class="code-box-value">{{ voucher.code }}</div>
+    </div>
+
+    <!-- VOUCHER DETAILS -->
+    <div class="detail-box">
+      <div class="detail-box-title">&#128203; Thông tin chi tiết voucher</div>
+
+      <div class="detail-row">
+        <div class="detail-icon">&#127381;</div>
+        <div class="detail-label">Loại ưu đãi</div>
+        <div class="detail-value highlight">
+          {% if voucher.discount_type == "percent" %}
+            Giảm {{ voucher.discount_value|floatformat:0 }}%
+          {% else %}
+            Giảm {{ voucher.discount_value|floatformat:0|intcomma }}đ
+          {% endif %}
+        </div>
+      </div>
+
+      {% if voucher.discount_type == "percent" and voucher.max_discount_amount %}
+      <div class="detail-row">
+        <div class="detail-icon">&#128176;</div>
+        <div class="detail-label">Giảm tối đa</div>
+        <div class="detail-value">{{ voucher.max_discount_amount|floatformat:0|intcomma }}đ</div>
+      </div>
+      {% endif %}
+
+      <hr class="detail-divider">
+
+      <div class="detail-row">
+        <div class="detail-icon">&#128197;</div>
+        <div class="detail-label">Ngày bắt đầu</div>
+        <div class="detail-value">{{ voucher.release_date|date:"d/m/Y H:i" }}</div>
+      </div>
+
+      <div class="detail-row">
+        <div class="detail-icon">&#9203;</div>
+        <div class="detail-label">Ngày hết hạn</div>
+        <div class="detail-value">{{ voucher.expiry_date|date:"d/m/Y H:i" }}</div>
+      </div>
+
+      <hr class="detail-divider">
+
+      {% with rule=voucher.rule %}
+      {% if rule.min_order_amount > 0 %}
+      <div class="detail-row">
+        <div class="detail-icon">&#128722;</div>
+        <div class="detail-label">Đơn hàng tối thiểu</div>
+        <div class="detail-value">{{ rule.min_order_amount|floatformat:0|intcomma }}đ</div>
+      </div>
+      {% endif %}
+      {% if rule.birthday_only %}
+      <div class="detail-row">
+        <div class="detail-icon">&#127874;</div>
+        <div class="detail-label">Điều kiện</div>
+        <div class="detail-value">Tháng sinh nhật</div>
+      </div>
+      {% endif %}
+      {% if rule.required_product_type %}
+      <div class="detail-row">
+        <div class="detail-icon">&#127991;</div>
+        <div class="detail-label">Sản phẩm áp dụng</div>
+        <div class="detail-value">{{ rule.required_product_type }}</div>
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <div class="detail-row">
+        <div class="detail-icon">&#128101;</div>
+        <div class="detail-label">Đối tượng</div>
+        <div class="detail-value">
+          {% with rule=voucher.rule %}
+            {% if rule.required_role == "vip" %}Member VIP
+            {% elif rule.required_role == "customer" %}Thành viên đăng nhập
+            {% else %}Tất cả mọi người{% endif %}
+          {% endwith %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- HOW TO USE -->
+    <div class="steps">
+      <div class="steps-title">&#128161; Cách sử dụng voucher</div>
+      <div class="step-item">
+        <div class="step-num"><span class="step-num-circle">1</span></div>
+        <div class="step-text">Đăng nhập vào tài khoản SmartVoucher của bạn.</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num"><span class="step-num-circle">2</span></div>
+        <div class="step-text">Thêm sản phẩm vào giỏ hàng và tiến hành thanh toán.</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num"><span class="step-num-circle">3</span></div>
+        <div class="step-text">Nhập mã <strong>{{ voucher.code }}</strong> vào ô "Nhập mã voucher" và nhấn Áp dụng.</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num"><span class="step-num-circle">4</span></div>
+        <div class="step-text">
+          Hưởng ngay ưu đãi
+          {% if voucher.discount_type == "percent" %}
+            <strong>giảm {{ voucher.discount_value|floatformat:0 }}%</strong>{% if voucher.max_discount_amount %} (tối đa {{ voucher.max_discount_amount|floatformat:0|intcomma }}đ){% endif %}!
+          {% else %}
+            <strong>giảm {{ voucher.discount_value|floatformat:0|intcomma }}đ</strong> cho đơn hàng của bạn!
+          {% endif %}
         </div>
       </div>
     </div>
-    
-    <div class="content">
-      <p>Chào <strong>{{ user.username }}</strong>,</p>
-      <p>Bạn vừa nhận được một voucher ưu đãi độc quyền từ SmartVoucher. Hãy sử dụng mã này cho lần mua hàng tiếp theo để nhận được ưu đãi hấp dẫn nhất!</p>
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
-        Đây là email tự động từ hệ thống SmartVoucher. Vui lòng không trả lời email này.
-      </p>
-    </div>
+
   </div>
+
+  <!-- ===== FOOTER ===== -->
+  <div class="footer">
+    <div class="footer-brand">&#127981; SmartVoucher</div>
+    <p class="footer-note">
+      Đây là email tự động từ hệ thống SmartVoucher. Vui lòng không trả lời email này.<br>
+      Voucher chỉ sử dụng được một lần và không áp dụng đồng thời với các chương trình khuyến mãi khác.<br>
+      Mọi thắc mắc xin liên hệ bộ phận hỗ trợ của chúng tôi.
+    </p>
+  </div>
+
+</div>
 </body>
 </html>

@@ -25,7 +25,7 @@ class VoucherDeliveryLogAPIView(APIView):
                 "id": log.id,
                 "user_id": log.user_id,
                 "username": log.user.username if log.user else "N/A",
-                "email": log.recipient or "",
+                "contact_info": log.recipient or "",
                 "channel": log.channel,
                 "status": log.status,
                 "status_display": log.get_status_display() if hasattr(log, 'get_status_display') else log.status,
@@ -114,3 +114,5 @@ class SendVoucherToEmailAPIView(APIView):
                 "error": f"Đã phân phối voucher nhưng gửi email thất bại cho {email}",
                 "already_assigned": not created,
             }, status=500)
+
+

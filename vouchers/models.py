@@ -132,17 +132,21 @@ class VoucherEventLog(models.Model):
 
 class VoucherDeliveryLog(models.Model):
     CHANNEL_EMAIL = "email"
+    CHANNEL_SMS = "sms"
     STATUS_SENT = "sent"
     STATUS_FAILED = "failed"
     STATUS_SKIPPED_NO_EMAIL = "skipped_no_email"
+    STATUS_SKIPPED_NO_PHONE = "skipped_no_phone"
 
     CHANNEL_CHOICES = [
         (CHANNEL_EMAIL, "Email"),
+        (CHANNEL_SMS, "SMS"),
     ]
     STATUS_CHOICES = [
         (STATUS_SENT, "Sent"),
         (STATUS_FAILED, "Failed"),
         (STATUS_SKIPPED_NO_EMAIL, "Skipped No Email"),
+        (STATUS_SKIPPED_NO_PHONE, "Skipped No Phone"),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
