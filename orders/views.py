@@ -10,7 +10,7 @@ from .serializers import OrderCancelSerializer, OrderSyncSerializer
 
 
 class SyncOrderAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = OrderSyncSerializer(data=request.data)

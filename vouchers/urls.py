@@ -1,7 +1,6 @@
 from django.urls import path
 from .views import (
     ApplyVoucherAPIView,
-    ConfirmVoucherUsageAPIView,
     CreateVoucherAPIView,
     DistributeVoucherAPIView,
     CreateAndDistributeVoucherAPIView,
@@ -13,9 +12,10 @@ from .views import (
     VoucherStatsOverviewPublicAPIView,
     VoucherPerformanceAPIView,
     VoucherRevenueChartAPIView,
-    VoucherTopStatsAPIView,
+    TopVouchersAPIView,
     VoucherListAPIView,
     VoucherRecipientDeleteAPIView,
+    CheckoutAPIView,
 )
 
 urlpatterns = [
@@ -32,7 +32,7 @@ urlpatterns = [
     path("stats/overview/public/", VoucherStatsOverviewPublicAPIView.as_view()),
     path("stats/performance/", VoucherPerformanceAPIView.as_view()),
     path("stats/revenue-chart/", VoucherRevenueChartAPIView.as_view()),
-    path("stats/top-vouchers/", VoucherTopStatsAPIView.as_view()),
+    path("stats/top-vouchers/", TopVouchersAPIView.as_view()),
     path("apply/", ApplyVoucherAPIView.as_view()),
-    path("confirm/", ConfirmVoucherUsageAPIView.as_view()),
+    path("checkout/", CheckoutAPIView.as_view()),
 ]

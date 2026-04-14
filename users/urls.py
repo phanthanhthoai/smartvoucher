@@ -13,6 +13,7 @@ from .views import (
     DeleteUserAPI,
     ToggleUserActiveAPI,
     UserUpdateAPI,
+    VoucherForUserAPI,
 )
 
 
@@ -30,4 +31,5 @@ urlpatterns = [
     path("<int:user_id>/update/", UserUpdateAPI.as_view()),
     path("<int:user_id>/", DeleteUserAPI.as_view()),
     path("<int:user_id>/toggle-active/", ToggleUserActiveAPI.as_view()),
+    path("vouchers-for-user/", VoucherForUserAPI.as_view()),
 ]

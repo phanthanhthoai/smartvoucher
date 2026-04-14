@@ -12,13 +12,42 @@ from .serializers import (
     UserSummarySerializer,
     UserUpdateSerializer,
 )
-from .services import register_user
+from .services import register_user, vouchers_for_user
 from .services import staff_user
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import Permission, Group
 from django.contrib.auth import get_user_model
 from .permissions import IsStaffOrAdmin
 
+
+class VoucherForUserAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        # Gọi hàm lấy danh sách UserVoucher của ní
+        user_vouchers = vouchers_for_user(user)
+        
+        data = [
+            {
+                "id": uv.voucher.id,
+                "code": uv.voucher.code,
+                "type": uv.voucher.discount_type,
+                "value": uv.voucher.discount_value,
+                "max_discount_amount": uv.voucher.max_discount_amount,
+                "is_used": uv.is_used,
+                "start_date": uv.voucher.release_date,
+                "expiry_date": uv.voucher.expiry_date,
+                
+                # 🚨 ĐÂY LÀ CHỖ ĐÃ FIX: Đi xuyên qua bảng Rule an toàn
+                "product_type": uv.voucher.rule.required_product_type if hasattr(uv.voucher, 'rule') else "All",
+                
+                "is_active": uv.voucher.is_active,
+            }
+            for uv in user_vouchers
+        ]
+        
+        return Response(data)
 
 class RegisterAPI(APIView):
     def post(self, request):

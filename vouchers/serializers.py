@@ -48,6 +48,11 @@ class VoucherRuleSerializer(serializers.ModelSerializer):
             "min_items",
             "required_product_type",
             "period_type",
+            "lookback_days",
+            "min_accumulated_spent",
+            "min_accumulated_orders",
+            "target_month",
+            "target_year",
         ]
 
 

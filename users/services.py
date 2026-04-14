@@ -1,6 +1,7 @@
 ﻿from django.contrib.auth import get_user_model
 
 from vouchers.services.distribution import assign_welcome_vouchers_to_user
+from vouchers.models import UserVoucher
 
 
 def register_user(username, email, password):
@@ -42,3 +43,6 @@ def staff_user(username, email, password):
     )
 
     return user, None
+
+def vouchers_for_user(user):
+    return UserVoucher.objects.filter(user=user).select_related("voucher")

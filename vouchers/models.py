@@ -46,10 +46,29 @@ class VoucherRule(models.Model):
         on_delete=models.CASCADE,
         related_name="rule"
     )
-
+    # Điều kiện để phân phối voucher
     required_role = models.CharField(max_length=50, null=True, blank=True)
     birthday_only = models.BooleanField(default=False)
 
+        # Điều kiện tích lũy lịch sử
+    min_accumulated_spent = models.FloatField(
+        default=0, 
+        help_text="Tổng số tiền tối thiểu user phải từng tiêu để được nhận mã"
+    )
+    min_accumulated_orders = models.IntegerField(
+        default=0, 
+        help_text="Tổng số đơn hàng thành công tối thiểu để được nhận mã"
+    )
+    
+        # Lọc thời gian cho điều kiện tích lũy
+    target_month = models.IntegerField(null=True, blank=True, help_text="Tháng cụ thể (1-12)")
+    target_year = models.IntegerField(null=True, blank=True, help_text="Năm cụ thể (ví dụ: 2025)")
+    lookback_days = models.IntegerField(
+        default=0, 
+        help_text="Số ngày tính ngược từ hiện tại (ví dụ: 30 ngày qua). Bị bỏ qua nếu có target_month/year"
+    )
+
+    # Điều kiện áp dụng cho đơn hàng
     min_order_amount = models.FloatField(default=0)
     min_items = models.IntegerField(default=0)
     required_product_type = models.CharField(max_length=100, null=True, blank=True)
