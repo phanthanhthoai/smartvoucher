@@ -29,7 +29,8 @@ class UserSummarySerializer(serializers.ModelSerializer):
         fields = [
             "id", 
             "username", 
-            "email", 
+            "email",
+            "phone",
             "role", 
             "is_staff", 
             "is_active", 
@@ -60,10 +61,11 @@ class UpdateUserPermissionsSerializer(serializers.Serializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["username", "email", "points", "total_spent"]
+        fields = ["username", "email", "phone", "points", "total_spent"]
         extra_kwargs = {
             "username": {"required": False},
             "email": {"required": False},
+            "phone": {"required": False, "allow_blank": True, "allow_null": True},
             "points": {"required": False},
             "total_spent": {"required": False},
         }

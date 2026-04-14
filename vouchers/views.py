@@ -26,6 +26,7 @@ from .serializers import (
     CreateVoucherSerializer,
     OrderSuccessEventSerializer,
     UpdateVoucherSerializer,
+    UserVoucherSerializer,
 )
 from .services.distribution import (
     assign_voucher_to_user,
@@ -377,6 +378,80 @@ class VoucherDetailAPIView(APIView):
         return Response({"message": "Xoa voucher thanh cong (da an)"}, status=200)
 
 
+class EligibleUsersForVoucherAPIView(APIView):
+    """
+    GET /vouchers/<voucher_id>/eligible-users/
+    Tự động chạy Rule Engine, trả về danh sách người dùng đủ điều kiện nhận voucher.
+    """
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def get(self, request, voucher_id):
+        User = get_user_model()
+        voucher = get_object_or_404(Voucher, id=voucher_id, is_deleted=False)
+
+        # Chỉ cho phép phân bổ khi voucher đang hoạt động
+        voucher_status = _get_voucher_status(voucher)
+        if voucher_status != "active":
+            status_labels = {
+                "paused": "Tạm dừng",
+                "expired": "Đã hết hạn",
+                "scheduled": "Chưa phát hành",
+                "exhausted": "Đã hết lượt",
+            }
+            label = status_labels.get(voucher_status, voucher_status)
+            return Response(
+                {"error": f"Voucher không thể phân bổ. Trạng thái hiện tại: {label}"},
+                status=400
+            )
+
+        try:
+            rule = voucher.rule
+        except Exception:
+            rule = None
+
+        all_users = User.objects.filter(is_active=True, role='customer')
+        eligible = []
+
+        for user in all_users:
+            if rule is None:
+                eligible.append(user)
+            else:
+                from .services.rule_engine import check_user_condition
+                if check_user_condition(user, rule):
+                    eligible.append(user)
+
+        # Check which ones already have this voucher
+        already_assigned_ids = set(
+            UserVoucher.objects.filter(voucher=voucher)
+            .values_list('user_id', flat=True)
+        )
+
+        eligible_data = []
+        for user in eligible:
+            eligible_data.append({
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "phone": getattr(user, 'phone', None),
+                "role": getattr(user, 'role', None),
+                "already_assigned": user.id in already_assigned_ids,
+            })
+
+        return Response({
+            "voucher_id": voucher.id,
+            "voucher_code": voucher.code,
+            "voucher_title": voucher.title,
+            "rule_summary": {
+                "required_role": getattr(rule, 'required_role', None) if rule else None,
+                "birthday_only": getattr(rule, 'birthday_only', False) if rule else False,
+            },
+            "total_eligible": len(eligible_data),
+            "already_assigned_count": sum(1 for u in eligible_data if u["already_assigned"]),
+            "new_eligible_count": sum(1 for u in eligible_data if not u["already_assigned"]),
+            "users": eligible_data,
+        })
+
+
 class DistributeVoucherAPIView(APIView):
     permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
@@ -384,6 +459,7 @@ class DistributeVoucherAPIView(APIView):
         voucher_id = request.data.get("voucher_id")
         voucher_code = request.data.get("voucher_code")
         user_ids = request.data.get("user_ids")
+        channels = request.data.get("channels", ["email"])
 
         if not voucher_id and not voucher_code:
             return Response({"error": "voucher_id hoac voucher_code la bat buoc"}, status=400)
@@ -393,8 +469,23 @@ class DistributeVoucherAPIView(APIView):
         else:
             voucher = Voucher.objects.get(code=voucher_code, is_deleted=False)
 
+        # Chỉ cho phép phân bổ khi voucher đang hoạt động
+        voucher_status = _get_voucher_status(voucher)
+        if voucher_status != "active":
+            status_labels = {
+                "paused": "Tạm dừng",
+                "expired": "Đã hết hạn",
+                "scheduled": "Chưa phát hành",
+                "exhausted": "Đã hết lượt",
+            }
+            label = status_labels.get(voucher_status, voucher_status)
+            return Response(
+                {"error": f"Không thể phân bổ. Voucher đang ở trạng thái: {label}"},
+                status=400
+            )
+
         users = get_target_users(user_ids=user_ids)
-        created, skipped, eligible = distribute_voucher(voucher, users)
+        created, skipped, eligible = distribute_voucher(voucher, users, channels=channels)
 
         return Response(
             {
@@ -838,6 +929,27 @@ class VoucherRecipientListAPIView(APIView):
                 "results": results,
             }
         )
+
+
+class UserVoucherHistoryAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOrAdmin]
+
+    def get(self, request, user_id):
+        uvs = UserVoucher.objects.filter(user_id=user_id).select_related("voucher").order_by("-assigned_at")
+        
+        User = get_user_model()
+        user = get_object_or_404(User, id=user_id)
+        
+        serializer = UserVoucherSerializer(uvs, many=True)
+        return Response({
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email
+            },
+            "count": len(serializer.data),
+            "results": serializer.data
+        })
 
 
 from django.db import transaction
